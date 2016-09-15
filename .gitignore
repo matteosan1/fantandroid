@@ -1,0 +1,12 @@
+android-build
+*.o
+Makefile
+*.json
+*~
+ui*
+moc*
+*.user*
+*.so
+*.dylib
+fantandroid
+app_process

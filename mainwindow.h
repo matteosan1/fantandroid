@@ -3,14 +3,15 @@
 
 #include <QMainWindow>
 #include <QString>
+#include <QMap>
 #include <QList>
 #include <QStringList>
+#include <QByteArray>
 
 #include "ui_mainwindow.h"
 #include "mainwindow.h"
 
 #include "giocatore.h"
-//#include "androidimagepicker.h"
 
 #define EMPTY_PLAYER "-------------"
 
@@ -24,9 +25,11 @@ class Punteggi;
 class GiocatoriInsert;
 class DownloadManager;
 class QSqlDatabase;
+class QSqlQuery;
 class QComboBox;
 class QListWidgetItem;
 class QKeyEvent;
+//class QProgressBar;
 
 class MainWindow : public QMainWindow
 {
@@ -42,23 +45,21 @@ public:
     void init();
     void loadDB();
     void chooseYourTeam(bool overwrite=false);
-    void setTeamLogo(QLabel* qLabel, int size, QString imageName);
+    void setTeamLogo(QLabel* qLabel, int size, QByteArray imageName);
     void fillYourTeam();
     void teamSorter(QList<Giocatore*>& players);
     QString checkVersion();
     bool isNewVersionAvailable();
+    void clearTable();
 
 public slots:
-    void updateTeam();
+    //void updateTeam();
     void sendLineup();
     void changeStack();
-    //void insertRow();
-    //void removeRow();
     void updateModules(const int& chosenModule);
     void playerSelected(QString player);
     void aggiungiPushed();
     void removePanchinaro(QListWidgetItem*);
-    //void chooseImage();
     void selectTeam();
     void selectRoster(QString teamName);
     void configDownload(bool exitCode);
@@ -73,34 +74,34 @@ private:
     void enableCombo(QComboBox* combo, RuoloEnum ruolo1, RuoloEnum ruolo2 = Nullo);
     void disableAllCombo();
     void screenResolution(int& theWidth, int& theHeight);
-
-    //int               m_giornata;
+    bool openDB();
 
 private:
     void fileSave();
 
     Ui::MainWindowTemp m_ui;
 
-    QString             m_teamLabel;
-    QString             m_teamImage;
-    bool                m_isModified;
-    QList<Giocatore*>   m_players;
-    QList<Giocatore*>   m_rosters;
-    QString             m_currentFile;
-    Punteggi*           m_points;
+    QString                m_teamLabel;
+    QByteArray             m_teamImage;
+    bool                   m_isModified;
+    QList<Giocatore*>      m_players;
+    QList<Giocatore*>      m_rosters;
+    QString                m_currentFile;
+    Punteggi*              m_points;
+    QMap<int, QList<int> > m_roleComboMap;
 
-    GiocatoriInsert*    m_model;
-    QSqlDatabase*       m_db;
+    GiocatoriInsert*       m_model;
+    QSqlDatabase*          m_db;
+    QString                m_qryStr;
+    QSqlQuery*             m_query;
 
-    QList<QComboBox*>   m_combos;
+    QList<QComboBox*>      m_combos;
 
-    bool                m_versionChecked;
-    QString             m_version;
-    DownloadManager*    m_downloadManager;
-
-//#ifdef Q_OS_ANDROID
-//    AndroidImagePicker  m_imagePicker;
-//#endif
+    bool                   m_versionChecked;
+    QString                m_version;
+    DownloadManager*       m_downloadManager;
+    //QProgressBar*          m_progressBar;
+    bool                   m_downloading;
 };
 
 #endif // MAINWINDOW_H

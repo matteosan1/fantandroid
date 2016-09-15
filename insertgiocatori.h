@@ -3,7 +3,7 @@
 
 #include "giocatore.h"
 
-#include <QAbstractTableModel>
+#include <QSqlTableModel>
 #include <QStringList>
 #include <QList>
 
@@ -12,7 +12,7 @@ class GiocatoriInsert : public QAbstractTableModel
     Q_OBJECT
 
 public:
-    GiocatoriInsert(QObject *parent = 0);
+    GiocatoriInsert(QObject *parent = 0);//, QSqlDatabase db);
     QList<Giocatore*> GetGiocatori() { return m_giocatori; }
     void setPlayers(const QList<Giocatore*>& players);
 

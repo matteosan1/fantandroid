@@ -3,10 +3,10 @@
 #include <QModelIndex>
 #include <QColor>
 
-GiocatoriInsert::GiocatoriInsert(QObject *parent)
+GiocatoriInsert::GiocatoriInsert(QObject *parent)//), QSqlDatabase db)
   : QAbstractTableModel(parent) {
   
-  m_giocatori.append(new Giocatore()); 
+  //m_giocatori.append(new Giocatore());
 }
 
 void GiocatoriInsert::setPlayers(const QList<Giocatore *> &players)
@@ -138,7 +138,8 @@ bool GiocatoriInsert::removeRows(int position, int rows, const QModelIndex &pare
     for(int i=position; i<m_giocatori.size()-1; ++i)
         m_giocatori[i] = m_giocatori[i+1];
 
-    m_giocatori.removeLast();
+    if (!m_giocatori.isEmpty())
+        m_giocatori.removeLast();
 
     endRemoveRows();
     return true;

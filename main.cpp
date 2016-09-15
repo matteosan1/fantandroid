@@ -27,7 +27,7 @@ int main(int argc, char *argv[])
 
     qApp->processEvents();
 
-    I::sleep(5);
+    I::sleep(2);
     splash.finish(&w);
     splash.raise();
 

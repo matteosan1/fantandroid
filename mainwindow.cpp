@@ -1,23 +1,22 @@
 #include "mainwindow.h"
 
 #include <QMessageBox>
-//#include <QInputDialog>
+#include <QInputDialog>
 #include <QSqlDatabase>
 #include <QSqlError>
+#include <QSqlRecord>
 #include <QSqlQuery>
 #include <QDir>
-//#include <QtGlobal>
 #include <QPixmap>
-//#include <QFileDialog>
 #include <QScroller>
 #include <QScreen>
 #include <QKeyEvent>
 
+// #define DEBUG
+
 #ifdef Q_OS_ANDROID
 #include <QtAndroidExtras>
 #endif
-
-//#include <QDebug>
 
 #include "ComboBoxDelegate.h"
 #include "downloadmanager.h"
@@ -28,7 +27,9 @@
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent),
-      m_versionChecked(false)
+      m_db(NULL),
+      m_versionChecked(false),
+      m_downloading(false)
 {
     connect(this, SIGNAL(destroyed()), this, SLOT(close()));
     m_downloadManager = new DownloadManager();
@@ -39,16 +40,23 @@ MainWindow::MainWindow(QWidget *parent)
         QDir().mkdir(OUTPUT_DIR);
     }
 
+    m_ui.setupUi(this);
     m_version = checkVersion();
     m_downloadManager->execute("https://dl.dropboxusercontent.com/s/rb1pqlwb0v4h6jl/version.txt?dl=0", OUTPUT_DIR);
-
-    m_ui.setupUi(this);
 }
 
 MainWindow::~MainWindow()
 {
-    m_db->close();
-    delete m_db;
+    // todo fix destructor
+    if (m_db != NULL)
+    {
+    //qDebug() << m_db->isOpen() << m_db->isValid();
+    //if (m_db->isOpen() and m_db->isValid())
+    {
+        //m_db->close();
+        //delete m_db;
+    }
+    }
 }
 
 QList<Giocatore*> MainWindow::giocatori()
@@ -59,14 +67,13 @@ QList<Giocatore*> MainWindow::giocatori()
 
 void MainWindow::configDownload(bool exitCode)
 {
-    bool goOn = false;
-
+    // download failed !
     if (!exitCode)
     {
         if (!m_versionChecked)
         {
+            // assume current version is ok
             m_versionChecked = true;
-            goOn = true;
         }
         else
             QMessageBox::warning(this, "Connessione fallita", "Impossibile scaricare gli aggiornamenti",  QMessageBox::Cancel);
@@ -76,44 +83,74 @@ void MainWindow::configDownload(bool exitCode)
         if (!m_versionChecked)
         {
             m_versionChecked = true;
+
             if (isNewVersionAvailable())
+            {
+                if (openDB())
+                    chooseYourTeam();
+
                 m_downloadManager->execute("https://dl.dropboxusercontent.com/s/0p5psz455zjaxb1/team.sqlite?dl=0", OUTPUT_DIR);
-            else
-                goOn = true;
+                return;
+            }
         }
-        else
-            goOn = true;
     }
 
+    if (openDB())
+    {
+        //m_sqlModel = new QSqlTableModel(this, *m_db);
+        chooseYourTeam();
+    }
+}
 
-    if (goOn)
+bool MainWindow::openDB()
+{
+    QString filename = QString(OUTPUT_DIR)+ QString("team.sqlite");
+    QFile file(filename);
+
+    if (file.exists())
     {
         m_db = new QSqlDatabase(QSqlDatabase::addDatabase( "QSQLITE","MyConnection" ));
         m_db->setDatabaseName(QString(OUTPUT_DIR)+ QString("team.sqlite"));
         m_db->open();
-        chooseYourTeam();
+
+        return true;
     }
+    else {
+        if (!m_downloadManager->isConnectedToNetwork())
+        {
+            QMessageBox::critical(this, "Impossibile scaricare il DB", "Connettiti ad internet e riavvia fantandroid", QMessageBox::Ok);
+            m_ui.stackedWidget->setCurrentIndex(0);
+            //if (ret == QMessageBox::Ok)
+            //    emit stackTo(0);
+        }
+
+        return false;
+    }
+
+    return true;
 }
 
 QString MainWindow::checkVersion()
 {
     QString filename = QString(OUTPUT_DIR)+QString("version.txt");
+    QFile file(filename);
 
-    if (!QFile::exists(filename))
+    if (!file.exists())
     {
         if (!m_downloadManager->isConnectedToNetwork())
         {
-            int ret = QMessageBox::critical(this, "Error in reading version file", "Connettiti ad internet e riavvia fantandroid", QMessageBox::Ok);
-            //qDebug() << ret << QMessageBox::Ok;
-            if (ret == QMessageBox::Ok)
-                this->close();
-            qApp->quit();
+            QMessageBox::critical(this, "Impossibile scaricare il file di versione", "Connettiti ad internet e riavvia fantandroid", QMessageBox::Ok);
+            m_ui.stackedWidget->setCurrentIndex(0);
+            //if (ret == QMessageBox::Ok)
+            //    emit stackTo(0);
+        }
+        else
+        {
+            m_downloadManager->execute("https://dl.dropboxusercontent.com/s/rb1pqlwb0v4h6jl/version.txt?dl=0", OUTPUT_DIR);
         }
 
-        return "";
+        return "0";
     }
-
-    QFile file(QString(OUTPUT_DIR)+QString("version.txt"));
 
     if(!file.open(QIODevice::ReadOnly)) {
         QMessageBox::information(this, "Error in reading version file", file.errorString(), QMessageBox::Cancel);
@@ -124,6 +161,12 @@ QString MainWindow::checkVersion()
     QString version = in.readLine();
 
     file.close();
+
+    if (m_db != NULL and !m_db->isOpen())
+    {
+        if (openDB())
+        chooseYourTeam();
+    }
 
     return version;
 }
@@ -138,51 +181,50 @@ bool MainWindow::isNewVersionAvailable()
         return false;
 }
 
-//void MainWindow::loadDB()
-//{
-////    QString filename = QFileDialog::getOpenFileName(this);
-
-////    if (filename != NULL)
-////    {
-
-////        QString destination = QString(OUTPUT_DIR)+filename.split("/").last();
-////        if (QFile::exists(destination))
-////            QFile::remove(destination);
-
-////        QFile myFile;
-////        myFile.setFileName(filename);
-////        myFile.copy(destination);
-//        m_db->open();
-//        chooseYourTeam();
-////    }
-//}
-
 void MainWindow::chooseYourTeam(bool overwrite)
 {
     QString qryStr;
     QSqlQuery query(*m_db);
 
-    qryStr = "SELECT * from yourTeam";
+    qryStr = "SELECT * from yourTeam;";
     query.exec(qryStr);
     query.first();
 
-    if (query.first() and !overwrite)
+    if (m_teamLabel.isEmpty() or overwrite)
     {
-        m_teamLabel = query.value("name").toString();
-        init();
-    }
-    else
-    {
-        m_ui.comboBoxSelectTeam->clear();
-        qryStr = QString("SELECT * from teamName;");
-        query.exec(qryStr);
-        while (query.next())
+        if (query.first() and !overwrite)
         {
-            m_ui.comboBoxSelectTeam->addItem(query.value("name").toString());
+            m_teamLabel = query.value("name").toString();
         }
+        else
+        {
+            QString phoneNumber = QInputDialog::getText(NULL, QString("Inserisci il tuo numero di telefono:"), QString("Numero di Telefono (senza 0039):"));
+            //m_sqlModel->setFilter("phone='"+phonenumber+"';");
+            //if (m_sqlModel->select())
 
-        connect(m_ui.pushButtonSelectTeam, SIGNAL(clicked(bool)), this, SLOT(selectTeam()));
-        m_ui.stackedWidget->setCurrentIndex(1);
+            qryStr = QString("SELECT name from teamName WHERE phone=\""+phoneNumber+"\";");
+
+            query.exec(qryStr);
+            if (query.first())
+            {
+                m_teamLabel = query.value("name").toString();
+            }
+            else
+            {
+                m_teamLabel = "";
+                QMessageBox::critical(this, "ERRORE", "Impossibile trovare il tuo numero nel DB", QMessageBox::Ok);
+            }
+        }
+    }
+
+    if (!m_teamLabel.isEmpty())
+    {
+        qryStr = QString("DELETE FROM yourTeam;");
+        query.exec(qryStr);
+        qryStr = QString("INSERT INTO yourTeam (name) VALUES (\"") + m_teamLabel + QString("\");");
+        query.exec(qryStr);
+
+        init();
     }
 }
 
@@ -205,11 +247,11 @@ void MainWindow::init()
 {
     QString qryStr;
     QSqlQuery query(*m_db);
-
     qryStr = QString("SELECT * from teamName where name = \"" + m_teamLabel + "\";");
     query.exec(qryStr);
-    query.next();
-    m_teamImage = query.value("image").toString();
+    query.first();
+
+    m_teamImage = query.value("image").toByteArray();
     m_ui.labelTeamName->setText(m_teamLabel);
     int height, width;
     screenResolution(width, height);
@@ -234,8 +276,20 @@ void MainWindow::init()
     }
 
     connect(m_ui.comboBoxModulo, SIGNAL(currentIndexChanged(int)), this, SLOT(updateModules(int)));
-    connect(m_ui.pushButtonAggiungii, SIGNAL(clicked(bool)), this, SLOT(aggiungiPushed()));
-    connect(m_ui.listPanchinari, SIGNAL(itemDoubleClicked(QListWidgetItem*)), this, SLOT(removePanchinaro(QListWidgetItem*)));
+
+    m_ui.pushButtonAggiungiDifensore->setObjectName("buttonDifesa");
+    m_ui.pushButtonAggiungiCentrocampista->setObjectName("buttonCentrocampo");
+    m_ui.pushButtonAggiungiAttaccante->setObjectName("buttonAttacco");
+    connect(m_ui.pushButtonAggiungiDifensore, SIGNAL(clicked(bool)), this, SLOT(aggiungiPushed()));
+    connect(m_ui.pushButtonAggiungiCentrocampista, SIGNAL(clicked(bool)), this, SLOT(aggiungiPushed()));
+    connect(m_ui.pushButtonAggiungiAttaccante, SIGNAL(clicked(bool)), this, SLOT(aggiungiPushed()));
+
+    m_ui.listPanchinariDifesa->setObjectName("listDifesa");
+    m_ui.listPanchinariCentrocampo->setObjectName("listCentrocampo");
+    m_ui.listPanchinariAttacco->setObjectName("listAttacco");
+    connect(m_ui.listPanchinariDifesa, SIGNAL(itemDoubleClicked(QListWidgetItem*)), this, SLOT(removePanchinaro(QListWidgetItem*)));
+    connect(m_ui.listPanchinariCentrocampo, SIGNAL(itemDoubleClicked(QListWidgetItem*)), this, SLOT(removePanchinaro(QListWidgetItem*)));
+    connect(m_ui.listPanchinariAttacco, SIGNAL(itemDoubleClicked(QListWidgetItem*)), this, SLOT(removePanchinaro(QListWidgetItem*)));
 
     m_ui.pushButtonLineupOK->setObjectName("LineupOK");
     connect(m_ui.pushButtonLineupOK, SIGNAL(pressed()), this, SLOT(changeStack()));
@@ -274,6 +328,7 @@ void MainWindow::init()
     connect(m_ui.pushButtonRosterExit, SIGNAL(clicked(bool)), this, SLOT(changeStack()));
 
     m_ui.comboBoxRosterChoser->addItem(EMPTY_PLAYER);
+
     qryStr = QString("SELECT * from teamName;");
     query.exec(qryStr);
     while (query.next())
@@ -319,7 +374,7 @@ void MainWindow::selectRoster(QString team)
     qryStr = QString("SELECT * from teamName where name = \"" + team + "\";");
     query.exec(qryStr);
     query.next();
-    QString imageName = query.value("image").toString();
+    QByteArray imageName = query.value("image").toByteArray();
     int height, width;
     screenResolution(width, height);
     int size = std::min(int(width*0.25), int(height*0.15));
@@ -341,6 +396,8 @@ void MainWindow::selectRoster(QString team)
         player->setCognome(query.value("surname").toString().toUpper());
         player->setNome(query.value("name").toString().toUpper());
         player->setRuolo(RuoloEnum(query.value("role").toInt()));
+        player->setSquadra(query.value("realTeam").toString().toUpper());
+        player->setPrezzo(query.value("price").toInt());
 
         m_rosters.append(player);
     }
@@ -385,38 +442,37 @@ void MainWindow::selectRoster(QString team)
     ScrollerProperties.setScrollMetric(QScrollerProperties::VerticalOvershootPolicy, OvershootPolicy);
     ScrollerProperties.setScrollMetric(QScrollerProperties::HorizontalOvershootPolicy, OvershootPolicy);
     QScroller::scroller(m_ui.tableViewRosters->viewport())->setScrollerProperties(ScrollerProperties);
+
+#ifdef Q_OS_ANDROID
+    QScroller::grabGesture(m_ui.listPanchinariDifesa->viewport(), QScroller::TouchGesture);
+#else
+    QScroller::grabGesture(m_ui.listPanchinariDifesa->viewport(), QScroller::LeftMouseButtonGesture);
+#endif
+    QScrollerProperties ScrollerProperties2 = QScroller::scroller(m_ui.listPanchinariDifesa->viewport())->scrollerProperties();
+    ScrollerProperties2.setScrollMetric(QScrollerProperties::VerticalOvershootPolicy, OvershootPolicy);
+    ScrollerProperties2.setScrollMetric(QScrollerProperties::HorizontalOvershootPolicy, OvershootPolicy);
+    QScroller::scroller(m_ui.listPanchinariDifesa->viewport())->setScrollerProperties(ScrollerProperties);
+
+#ifdef Q_OS_ANDROID
+    QScroller::grabGesture(m_ui.listPanchinariCentrocampo->viewport(), QScroller::TouchGesture);
+#else
+    QScroller::grabGesture(m_ui.listPanchinariCentrocampo->viewport(), QScroller::LeftMouseButtonGesture);
+#endif
+    QScrollerProperties ScrollerProperties3 = QScroller::scroller(m_ui.listPanchinariCentrocampo->viewport())->scrollerProperties();
+    ScrollerProperties3.setScrollMetric(QScrollerProperties::VerticalOvershootPolicy, OvershootPolicy);
+    ScrollerProperties3.setScrollMetric(QScrollerProperties::HorizontalOvershootPolicy, OvershootPolicy);
+    QScroller::scroller(m_ui.listPanchinariCentrocampo->viewport())->setScrollerProperties(ScrollerProperties);
+
+#ifdef Q_OS_ANDROID
+    QScroller::grabGesture(m_ui.listPanchinariAttacco->viewport(), QScroller::TouchGesture);
+#else
+    QScroller::grabGesture(m_ui.listPanchinariAttacco->viewport(), QScroller::LeftMouseButtonGesture);
+#endif
+    QScrollerProperties ScrollerProperties4 = QScroller::scroller(m_ui.listPanchinariAttacco->viewport())->scrollerProperties();
+    ScrollerProperties4.setScrollMetric(QScrollerProperties::VerticalOvershootPolicy, OvershootPolicy);
+    ScrollerProperties4.setScrollMetric(QScrollerProperties::HorizontalOvershootPolicy, OvershootPolicy);
+    QScroller::scroller(m_ui.listPanchinariAttacco->viewport())->setScrollerProperties(ScrollerProperties);
 }
-
-//void MainWindow::insertRow()
-//{
-//    m_ui.tableViewPlayers->model()->insertRows(0, 1);
-//    QModelIndex index = m_ui.tableViewPlayers->currentIndex();
-//    int row = index.row();
-//    int column = 0;
-//    QModelIndex newIndex = m_ui.tableViewPlayers->model()->index(row,column);
-//    m_ui.tableViewPlayers->setCurrentIndex(newIndex);
-//    m_ui.tableViewPlayers->setFocus();
-//    m_ui.tableViewPlayers->edit(newIndex);
-//    m_isModified = true;
-//}
-
-//void MainWindow::removeRow()
-//{
-//    QModelIndex index = m_ui.tableViewPlayers->currentIndex();
-//    QString name = index.sibling(index.row(), 1).data().toString();
-//    QString surname = index.sibling(index.row(), 0).data().toString();
-//    int role = index.sibling(index.row(), 2).data().toInt();
-
-//    QString qryStr = "DELETE FROM roster WHERE name=\"" + name + "\" and surname = \"" + surname + "\" and role = " + QString::number(role) + ";";
-//    QSqlQuery query(*m_db);
-
-
-//    query.exec(qryStr);
-
-//    int row = m_ui.tableViewPlayers->currentIndex().row();
-//    m_ui.tableViewPlayers->model()->removeRows(row, 1);
-//    m_isModified = true;
-//}
 
 void MainWindow::changeStack()
 {
@@ -434,13 +490,31 @@ void MainWindow::changeStack()
         }
         else if (sender->objectName() == "LineupOK")
         {
-            sendLineup();
-            emit stackTo(0);
+            int retCapitano = QMessageBox::Ok;
+            int retPanchina = QMessageBox::Ok;
+
+            if (m_ui.comboBoxCapitano->currentIndex() == 0)
+            {
+                retCapitano = QMessageBox::warning(this, "AVVISO", "Non hai selezionato il capitano.", QMessageBox::Ok | QMessageBox::Cancel);
+            }
+
+            if (m_ui.listPanchinariAttacco->count() == 0 && m_ui.listPanchinariDifesa->count() == 0 && m_ui.listPanchinariCentrocampo->count() == 0)
+            {
+                retPanchina = QMessageBox::warning(this, "AVVISO", "Non hai giocatori da mettere in panchina ?", QMessageBox::Ok | QMessageBox::Cancel);
+            }
+
+            if (retCapitano == QMessageBox::Ok && retPanchina == QMessageBox::Ok)
+            {
+                sendLineup();
+                clearTable();
+                emit stackTo(0);
+            }
         }
         else if (sender->objectName() == "LineupCancel")
         {
             QString title = "Formazione";
             QMessageBox::warning(this, title, "Formazione non terminata");
+            clearTable();
             emit stackTo(0);
         }
         else if (sender->objectName() == "RosterExit")
@@ -454,36 +528,6 @@ void MainWindow::changeStack()
 void MainWindow::updateTeamChoice()
 {
     chooseYourTeam(true);
-}
-
-void MainWindow::updateTeam()
-{
-    if (m_isModified) {
-        m_players = giocatori();
-
-        int ret = QMessageBox::warning(this, "Fantandroid Avvertimento",
-                                       tr("Vuoi salvare i cambiamenti ?"),
-                                       QMessageBox::Yes | QMessageBox::Default,
-                                       QMessageBox::No | QMessageBox::Escape);
-        if (ret == QMessageBox::Yes)
-        {
-            //m_db->commit();
-            fileSave();
-        }
-        //else
-            //m_db->rollback();
-    }
-
-    for(int i=0; i<m_players.size(); ++i) {
-        if (m_players[i]->cognome() == "")
-            m_players[i]->setCognome(QString("GIOCATORE %d").arg(i));
-        if (m_players[i]->nome() == "")
-            m_players[i]->setNome(" ");
-        if (m_players[i]->squadra() == "")
-            m_players[i]->setSquadra(" ");
-    }
-
-    teamSorter(m_players);
 }
 
 void MainWindow::sendLineup()
@@ -503,9 +547,6 @@ void MainWindow::sendLineup()
 
 void MainWindow::playerSelected(QString player)
 {
-    //if (player == EMPTY_PLAYER)
-    //    return;
-
     QComboBox* sender = (QComboBox*)QObject::sender();
     if (sender != NULL)
     {
@@ -550,24 +591,57 @@ void MainWindow::playerSelected(QString player)
 
     if (nGiocano == 11)
     {
-        // todo check nGiocano, capitano settato e panchina fatta
         m_ui.pushButtonLineupOK->setEnabled(true);
         m_ui.comboBoxCapitano->clear();
-        m_ui.comboBoxPanchinari->clear();
+        m_ui.comboBoxPanchinariDifesa->clear();
+        m_ui.comboBoxPanchinariCentrocampo->clear();
+        m_ui.comboBoxPanchinariAttacco->clear();
+
+        m_ui.comboBoxCapitano->addItem(EMPTY_PLAYER);
+        m_ui.comboBoxCapitano->setCurrentIndex(0);
+
         foreach (Giocatore* p, m_players)
         {
             if (p->partita(0).Formazione() != -1)
                 m_ui.comboBoxCapitano->addItem(p->nomeCompleto());
             else
-                m_ui.comboBoxPanchinari->addItem(p->nomeCompleto());
+            {
+                int ruolo = p->ruolo()/10;
+                if (ruolo == 2)
+                    m_ui.comboBoxPanchinariDifesa->addItem(p->nomeCompleto());
+                else if (ruolo == 3)
+                    m_ui.comboBoxPanchinariCentrocampo->addItem(p->nomeCompleto());
+                else if (ruolo == 4)
+                    m_ui.comboBoxPanchinariAttacco->addItem(p->nomeCompleto());
+            }
         }
     }
     else
     {
         m_ui.pushButtonLineupOK->setEnabled(false);
         m_ui.comboBoxCapitano->clear();
-        m_ui.comboBoxPanchinari->clear();
+        m_ui.comboBoxPanchinariDifesa->clear();
+        m_ui.comboBoxPanchinariCentrocampo->clear();
+        m_ui.comboBoxPanchinariAttacco->clear();
     }
+}
+
+void MainWindow::clearTable()
+{
+    m_ui.comboBoxModulo->setCurrentIndex(0);
+    foreach (QComboBox* combo, m_combos)
+        combo->setCurrentIndex(0);
+
+    foreach (Giocatore* p, m_players)
+        p->partita(0).SetFormazione(-1);
+
+    m_ui.comboBoxCapitano->setCurrentIndex(0);
+    m_ui.comboBoxPanchinariDifesa->setCurrentIndex(0);
+    m_ui.comboBoxPanchinariCentrocampo->setCurrentIndex(0);
+    m_ui.comboBoxPanchinariAttacco->setCurrentIndex(0);
+    m_ui.listPanchinariDifesa->clear();
+    m_ui.listPanchinariCentrocampo->clear();
+    m_ui.listPanchinariAttacco->clear();
 }
 
 void MainWindow::updateModules(const int& chosenModule)
@@ -669,8 +743,8 @@ void MainWindow::updateModules(const int& chosenModule)
         enableCombo(m_ui.comboBoxCentrocampistaCx2, CentrocampistaCentrale);
         enableCombo(m_ui.comboBoxCentrocampistaCx3, CentrocampistaCentrale);
         enableCombo(m_ui.comboBoxAttaccanteCx, CentrocampistaTrequartista);
-        enableCombo(m_ui.comboBoxAttaccanteDx, AttaccanteCentrale);
-        enableCombo(m_ui.comboBoxAttaccanteSx, AttaccanteCentrale);
+        enableCombo(m_ui.comboBoxAttaccanteDx, AttaccanteCentrale, AttaccanteMovimento);
+        enableCombo(m_ui.comboBoxAttaccanteSx, AttaccanteCentrale, AttaccanteMovimento);
         break;
     case 7: // 4-3-3
         enableCombo(m_ui.comboBoxDifensoreSx, DifensoreTerzino);
@@ -761,6 +835,19 @@ void MainWindow::updateModules(const int& chosenModule)
 
 void MainWindow::enableCombo(QComboBox* combo, RuoloEnum ruolo1, RuoloEnum ruolo2)
 {
+    int comboId = combo->objectName().toInt();
+    //if (m_roleComboMap.contains(comboId))
+    //{
+        QList<int> list;
+        list.append(int(ruolo1));
+        list.append(int(ruolo2));
+        m_roleComboMap[comboId] = list;
+//    }
+//    else
+//    {
+//        m_roleComboMap.append()
+//    }
+
     combo->setEnabled(true);
     combo->setVisible(true);
 
@@ -819,24 +906,46 @@ void MainWindow::disableAllCombo()
 
 void MainWindow::aggiungiPushed()
 {
-    QString player = m_ui.comboBoxPanchinari->currentText();
-
-    bool alreadyIn = false;
-    for (int i=0; i<m_ui.listPanchinari->count(); ++i)
+    QPushButton* button = (QPushButton*)QObject::sender();
+    if (button != NULL)
     {
-        if (player == m_ui.listPanchinari->item(i)->text())
+        QListWidget* list;
+        QComboBox* combo;
+        if (button->objectName() == "buttonDifesa")
         {
-            alreadyIn = true;
-            break;
+            list  = m_ui.listPanchinariDifesa;
+            combo = m_ui.comboBoxPanchinariDifesa;
         }
-    }
+        else if (button->objectName() == "buttonCentrocampo")
+        {
+            list  = m_ui.listPanchinariCentrocampo;
+            combo = m_ui.comboBoxPanchinariCentrocampo;
+        }
+        else if (button->objectName() == "buttonAttacco")
+        {
+            list  = m_ui.listPanchinariAttacco;
+            combo = m_ui.comboBoxPanchinariAttacco;
+        }
 
-    if (!alreadyIn)
-    {
-        int row = m_ui.listPanchinari->currentRow();
-        if (row == -1)
-            row = m_ui.listPanchinari->count() + 1;
-        m_ui.listPanchinari->insertItem(row+1, player);
+        QString player = combo->currentText();
+
+        bool alreadyIn = false;
+        for (int i=0; i<list->count(); ++i)
+        {
+            if (player == list->item(i)->text())
+            {
+                alreadyIn = true;
+                break;
+            }
+        }
+
+        if (!alreadyIn)
+        {
+            int row = list->currentRow();
+            if (row == -1)
+                row = list->count() + 1;
+            list->insertItem(row+1, player);
+        }
     }
 }
 
@@ -850,34 +959,70 @@ QString MainWindow::finalizeMessage()
     QString text;
     QString capitano = m_ui.comboBoxCapitano->currentText();
 
-    text = text + "Modulo: " + m_ui.comboBoxModulo->currentText() + "\n";
+    text += m_teamLabel.toUpper() + "\n";
+    text += "Modulo: " + m_ui.comboBoxModulo->currentText() + "\n";
+    text += "++++++++++++\n";
     foreach(QComboBox* combo, m_combos)
     {
         if (combo->isEnabled())
         {
             QString player = combo->currentText();
-            RuoloEnum ruolo;
+            RuoloEnum ruolo = Portiere;
 
+            bool isMisplaced = true;
             foreach (Giocatore* p, m_players)
             {
                 if (p->nomeCompleto() == player)
                 {
                     ruolo = p->ruolo();
-                    break;
+                    int comboId = combo->objectName().toInt();
+
+                    foreach (int l, m_roleComboMap[comboId])
+                    {
+                        if (int(p->ruolo()) == l)
+                            isMisplaced = false;
+                    }
                 }
             }
 
             if (player == capitano)
-                text = text + player + " [" + Giocatore::ruoloToString(ruolo) + "] (C)\n";
+                text += "*";
+
+            if (isMisplaced)
+                text += "_" + player.toLower() + " [" + Giocatore::ruoloToString(ruolo) + "]_";
             else
-                text = text + player + " [" + Giocatore::ruoloToString(ruolo) + "]\n";
+                text += player + " [" + Giocatore::ruoloToString(ruolo) + "]";
+
+            if (player == capitano)
+                text += " (C)*\n";
+            else
+                text += "\n";
         }
     }
 
-    text = text + "\nPANCHINA\n";
-    for (int i=0; i<m_ui.listPanchinari->count(); ++i)
+    text = text + "--------------\n";
+    QListWidget* list;
+    for (int nPanch=0; nPanch<3; nPanch++)
     {
-        text = text + m_ui.listPanchinari->item(i)->text() + "\n";
+        if (nPanch == 0)
+            list = m_ui.listPanchinariDifesa;
+        else if (nPanch == 1)
+            list = m_ui.listPanchinariCentrocampo;
+        else if (nPanch == 2)
+            list = m_ui.listPanchinariAttacco;
+
+        for (int i=0; i<list->count(); ++i)
+        {
+            QString player = list->item(i)->text();
+            foreach (Giocatore* p, m_players)
+            {
+                if (player == p->nomeCompleto())
+                {
+                    text += player + " [" + Giocatore::ruoloToString(p->ruolo()) + "]\n";
+                    break;
+                }
+            }
+        }
     }
 
     return text;
@@ -934,21 +1079,21 @@ void MainWindow::teamSorter(QList<Giocatore*>& players)
     }
 }
 
-void MainWindow::setTeamLogo(QLabel* qLabel, int size, QString imageName)
+void MainWindow::setTeamLogo(QLabel* qLabel, int size, QByteArray imageName)
 {
-    QImage myImage;
-    myImage.load(imageName);
-    myImage = myImage.scaled(size, size);
-    qLabel->setPixmap(QPixmap::fromImage(myImage));
+//    QImage myImage;
+//    myImage.load(imageName);
+//    myImage = myImage.scaled(size, size);
+//    qLabel->setPixmap(QPixmap::fromImage(myImage));
+
+    QPixmap pixmap;
+    if (pixmap.loadFromData(imageName))
+    {
+        pixmap = pixmap.scaled(size, size, Qt::KeepAspectRatio, Qt::FastTransformation);
+    }
+
+    qLabel->setPixmap(pixmap);
 }
-
-//void MainWindow::chooseImage()
-//{
-
-//#ifdef Q_OS_ANDROID
-//    m_imagePicker.show();
-//#endif
-//}
 
 void MainWindow::screenResolution(int& theWidth, int& theHeight)
 {
@@ -963,7 +1108,11 @@ void MainWindow::keyReleaseEvent(QKeyEvent *event)
     if (event->key() == Qt::Key_Back)
     {
         event->accept();
-        emit stackTo(0);
+
+        if (m_ui.stackedWidget->currentIndex() == 0 or m_ui.stackedWidget->currentIndex() == 1)
+            qApp->quit();
+        else
+            emit stackTo(0);
     }
     else if (event->key() == Qt::Key_Menu)
     {

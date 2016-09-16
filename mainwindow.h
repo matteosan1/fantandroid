@@ -51,6 +51,8 @@ public:
     QString checkVersion();
     bool isNewVersionAvailable();
     void clearTable();
+    void clearLineup();
+    void clearBench();
 
 public slots:
     //void updateTeam();
@@ -64,6 +66,10 @@ public slots:
     void selectRoster(QString teamName);
     void configDownload(bool exitCode);
     void updateTeamChoice();
+    // todo check limits
+    void changeRoundUp() { if (m_round<m_maxRounds) m_round++; computeRanking(); }
+    void changeRoundDown() { if (m_round > 0) m_round--; computeRanking(); }
+    void fillTopScorerRanking();
 
     void keyReleaseEvent(QKeyEvent* event);
 
@@ -75,6 +81,7 @@ private:
     void disableAllCombo();
     void screenResolution(int& theWidth, int& theHeight);
     bool openDB();
+    void computeRanking();
 
 private:
     void fileSave();
@@ -102,6 +109,10 @@ private:
     DownloadManager*       m_downloadManager;
     //QProgressBar*          m_progressBar;
     bool                   m_downloading;
+    bool                   m_rankingComputed;
+    int                    m_round;
+    int                    m_maxRounds;
+    bool                   m_topScorerRanking;
 };
 
 #endif // MAINWINDOW_H

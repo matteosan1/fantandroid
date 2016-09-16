@@ -16,7 +16,8 @@ SOURCES = main.cpp \
           prestazione.cpp \
           giocatore.cpp \
           #androidimagepicker.cpp \
-          downloadmanager.cpp
+          downloadmanager.cpp \
+    team.cpp
 
 
 HEADERS += mainwindow.h \
@@ -26,7 +27,8 @@ HEADERS += mainwindow.h \
            prestazione.h \
            giocatore.h \
            #androidimagepicker.h \
-           downloadmanager.h
+           downloadmanager.h \
+    team.h
 
 FORMS = forms/mainwindow.ui
 

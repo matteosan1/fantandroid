@@ -22,6 +22,7 @@
 #include "downloadmanager.h"
 #include "punteggi.h"
 #include "insertgiocatori.h"
+#include "team.h"
 
 #include <limits>
 
@@ -29,7 +30,10 @@ MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent),
       m_db(NULL),
       m_versionChecked(false),
-      m_downloading(false)
+      m_downloading(false),
+      m_rankingComputed(false),
+      m_round(-1),
+      m_maxRounds(-1)
 {
     connect(this, SIGNAL(destroyed()), this, SLOT(close()));
     m_downloadManager = new DownloadManager();
@@ -51,11 +55,11 @@ MainWindow::~MainWindow()
     if (m_db != NULL)
     {
     //qDebug() << m_db->isOpen() << m_db->isValid();
-    //if (m_db->isOpen() and m_db->isValid())
+    if (m_db->isOpen())
     {
-        //m_db->close();
-        //delete m_db;
+        m_db->close();
     }
+    delete m_db;
     }
 }
 
@@ -307,9 +311,14 @@ void MainWindow::init()
     m_combos.append(m_ui.comboBoxCentrocampistaCx1);
     m_combos.append(m_ui.comboBoxCentrocampistaCx2);
     m_combos.append(m_ui.comboBoxCentrocampistaCx3);
+    m_combos.append(m_ui.comboBoxTrequartista1);
+    m_combos.append(m_ui.comboBoxTrequartista2);
+    m_combos.append(m_ui.comboBoxTrequartista3);
     m_combos.append(m_ui.comboBoxAttaccanteDx);
     m_combos.append(m_ui.comboBoxAttaccanteSx);
-    m_combos.append(m_ui.comboBoxAttaccanteCx);
+    m_combos.append(m_ui.comboBoxAttaccanteCx1);
+    m_combos.append(m_ui.comboBoxAttaccanteCx2);
+    m_combos.append(m_ui.comboBoxAttaccanteCx3);
 
     int index = 0;
     foreach (QComboBox* combo, m_combos)
@@ -339,6 +348,14 @@ void MainWindow::init()
 
     // setup settings stack
     connect(m_ui.pushButtonTeamUpdate, SIGNAL(clicked(bool)), this, SLOT(updateTeamChoice()));
+
+    // setup ranking stack
+    m_ui.pushButtonRanking->setObjectName("Ranking");
+    connect(m_ui.pushButtonRanking, SIGNAL(clicked(bool)), this, SLOT(changeStack()));
+    m_ui.pushButtonRankingExit->setObjectName("RankingExit");
+    connect(m_ui.pushButtonRankingExit, SIGNAL(clicked(bool)), this, SLOT(changeStack()));
+    connect(m_ui.pushButtonRoundUp, SIGNAL(clicked(bool)), this, SLOT(changeRoundUp()));
+    connect(m_ui.pushButtonRoundDown, SIGNAL(clicked(bool)), this, SLOT(changeRoundDown()));
 
     m_ui.stackedWidget->setCurrentIndex(0);
 }
@@ -517,7 +534,12 @@ void MainWindow::changeStack()
             clearTable();
             emit stackTo(0);
         }
-        else if (sender->objectName() == "RosterExit")
+        else if (sender->objectName() == "Ranking")
+        {
+            computeRanking();
+            emit stackTo(6);
+        }
+        else if (sender->objectName() == "RosterExit" or sender->objectName() == "RankingExit")
         {
             //updateTeam();
             emit stackTo(0);
@@ -585,10 +607,11 @@ void MainWindow::playerSelected(QString player)
     foreach (Giocatore* p, m_players)
     {
         int index = p->partita(0).Formazione();
-        if (index != -1)
+        if (index != -1 and m_combos[index]->isVisible())
             nGiocano++;
     }
 
+    //qDebug() << nGiocano;
     if (nGiocano == 11)
     {
         m_ui.pushButtonLineupOK->setEnabled(true);
@@ -602,7 +625,8 @@ void MainWindow::playerSelected(QString player)
 
         foreach (Giocatore* p, m_players)
         {
-            if (p->partita(0).Formazione() != -1)
+            int index = p->partita(0).Formazione();
+            if (index != -1 and m_combos[index]->isVisible())
                 m_ui.comboBoxCapitano->addItem(p->nomeCompleto());
             else
             {
@@ -628,13 +652,22 @@ void MainWindow::playerSelected(QString player)
 
 void MainWindow::clearTable()
 {
-    m_ui.comboBoxModulo->setCurrentIndex(0);
+    clearLineup();
+    clearBench();
+}
+
+void MainWindow::clearLineup()
+{
+    m_ui.comboBoxModulo->setCurrentIndex(0); // move somewherelse
     foreach (QComboBox* combo, m_combos)
         combo->setCurrentIndex(0);
 
     foreach (Giocatore* p, m_players)
         p->partita(0).SetFormazione(-1);
+}
 
+void MainWindow::clearBench()
+{
     m_ui.comboBoxCapitano->setCurrentIndex(0);
     m_ui.comboBoxPanchinariDifesa->setCurrentIndex(0);
     m_ui.comboBoxPanchinariCentrocampo->setCurrentIndex(0);
@@ -646,6 +679,8 @@ void MainWindow::clearTable()
 
 void MainWindow::updateModules(const int& chosenModule)
 {
+    clearBench();
+
     int realModule = -1;
     int counter = 0;
     for (int i=1; i<NUMERO_SCHEMI; i++)
@@ -672,7 +707,7 @@ void MainWindow::updateModules(const int& chosenModule)
         enableCombo(m_ui.comboBoxCentrocampistaCx2, CentrocampistaCentrale);
         enableCombo(m_ui.comboBoxCentrocampistaSx, CentrocampistaEsterno);
         enableCombo(m_ui.comboBoxCentrocampistaDx, CentrocampistaEsterno);
-        enableCombo(m_ui.comboBoxAttaccanteCx, AttaccanteCentrale);
+        enableCombo(m_ui.comboBoxAttaccanteCx3, AttaccanteCentrale);
         break;
     case 1: // 5-3-1-1
         enableCombo(m_ui.comboBoxDifensoreSx, DifensoreTerzino);
@@ -683,8 +718,8 @@ void MainWindow::updateModules(const int& chosenModule)
         enableCombo(m_ui.comboBoxCentrocampistaCx1, CentrocampistaCentrale);
         enableCombo(m_ui.comboBoxCentrocampistaCx2, CentrocampistaCentrale);
         enableCombo(m_ui.comboBoxCentrocampistaCx3, CentrocampistaCentrale);
-        enableCombo(m_ui.comboBoxAttaccanteCx, CentrocampistaTrequartista);
-        enableCombo(m_ui.comboBoxAttaccanteDx, AttaccanteMovimento);
+        enableCombo(m_ui.comboBoxTrequartista3, CentrocampistaTrequartista);
+        enableCombo(m_ui.comboBoxAttaccanteCx3, AttaccanteMovimento);
         break;
     case 2: // 5-3-2
         enableCombo(m_ui.comboBoxDifensoreSx, DifensoreTerzino);
@@ -708,7 +743,7 @@ void MainWindow::updateModules(const int& chosenModule)
         enableCombo(m_ui.comboBoxCentrocampistaCx3, CentrocampistaCentrale);
         enableCombo(m_ui.comboBoxCentrocampistaSx, CentrocampistaEsterno);
         enableCombo(m_ui.comboBoxCentrocampistaDx, CentrocampistaEsterno);
-        enableCombo(m_ui.comboBoxAttaccanteCx, AttaccanteCentrale);
+        enableCombo(m_ui.comboBoxAttaccanteCx3, AttaccanteCentrale);
         break;
     case 4: // 4-4-2
         enableCombo(m_ui.comboBoxDifensoreSx, DifensoreTerzino);
@@ -730,9 +765,9 @@ void MainWindow::updateModules(const int& chosenModule)
         enableCombo(m_ui.comboBoxCentrocampistaCx1, CentrocampistaCentrale);
         enableCombo(m_ui.comboBoxCentrocampistaCx2, CentrocampistaCentrale);
         enableCombo(m_ui.comboBoxCentrocampistaCx3, CentrocampistaCentrale);
-        enableCombo(m_ui.comboBoxAttaccanteDx, CentrocampistaTrequartista);
-        enableCombo(m_ui.comboBoxAttaccanteSx, CentrocampistaTrequartista);
-        enableCombo(m_ui.comboBoxAttaccanteCx, AttaccanteCentrale);
+        enableCombo(m_ui.comboBoxTrequartista1, CentrocampistaTrequartista);
+        enableCombo(m_ui.comboBoxTrequartista2, CentrocampistaTrequartista);
+        enableCombo(m_ui.comboBoxAttaccanteCx3, AttaccanteCentrale);
         break;
     case 6: // 4-3-1-2
         enableCombo(m_ui.comboBoxDifensoreSx, DifensoreTerzino);
@@ -742,7 +777,7 @@ void MainWindow::updateModules(const int& chosenModule)
         enableCombo(m_ui.comboBoxCentrocampistaCx1, CentrocampistaCentrale);
         enableCombo(m_ui.comboBoxCentrocampistaCx2, CentrocampistaCentrale);
         enableCombo(m_ui.comboBoxCentrocampistaCx3, CentrocampistaCentrale);
-        enableCombo(m_ui.comboBoxAttaccanteCx, CentrocampistaTrequartista);
+        enableCombo(m_ui.comboBoxTrequartista3, CentrocampistaTrequartista);
         enableCombo(m_ui.comboBoxAttaccanteDx, AttaccanteCentrale, AttaccanteMovimento);
         enableCombo(m_ui.comboBoxAttaccanteSx, AttaccanteCentrale, AttaccanteMovimento);
         break;
@@ -754,7 +789,7 @@ void MainWindow::updateModules(const int& chosenModule)
         enableCombo(m_ui.comboBoxCentrocampistaCx1, CentrocampistaCentrale);
         enableCombo(m_ui.comboBoxCentrocampistaCx2, CentrocampistaCentrale);
         enableCombo(m_ui.comboBoxCentrocampistaCx3, CentrocampistaCentrale);
-        enableCombo(m_ui.comboBoxAttaccanteCx, AttaccanteCentrale);
+        enableCombo(m_ui.comboBoxAttaccanteCx3, AttaccanteCentrale);
         enableCombo(m_ui.comboBoxAttaccanteDx, AttaccanteMovimento);
         enableCombo(m_ui.comboBoxAttaccanteSx, AttaccanteMovimento);
         break;
@@ -765,10 +800,10 @@ void MainWindow::updateModules(const int& chosenModule)
         enableCombo(m_ui.comboBoxDifensoreSx, DifensoreTerzino);
         enableCombo(m_ui.comboBoxCentrocampistaCx1, CentrocampistaCentrale);
         enableCombo(m_ui.comboBoxCentrocampistaCx2, CentrocampistaCentrale);
-        enableCombo(m_ui.comboBoxCentrocampistaCx3, CentrocampistaTrequartista);
-        enableCombo(m_ui.comboBoxAttaccanteCx, AttaccanteCentrale);
-        enableCombo(m_ui.comboBoxCentrocampistaDx, CentrocampistaEsterno, CentrocampistaTrequartista);
-        enableCombo(m_ui.comboBoxCentrocampistaSx, CentrocampistaEsterno, CentrocampistaTrequartista);
+        enableCombo(m_ui.comboBoxTrequartista3, CentrocampistaTrequartista);
+        enableCombo(m_ui.comboBoxAttaccanteCx3, AttaccanteCentrale);
+        enableCombo(m_ui.comboBoxTrequartista1, CentrocampistaEsterno, CentrocampistaTrequartista);
+        enableCombo(m_ui.comboBoxTrequartista2, CentrocampistaEsterno, CentrocampistaTrequartista);
         break;
     case 9: // 4-2-1-3
         enableCombo(m_ui.comboBoxDifensoreCx1, DifensoreCentrale);
@@ -777,8 +812,8 @@ void MainWindow::updateModules(const int& chosenModule)
         enableCombo(m_ui.comboBoxDifensoreSx, DifensoreTerzino);
         enableCombo(m_ui.comboBoxCentrocampistaCx1, CentrocampistaCentrale);
         enableCombo(m_ui.comboBoxCentrocampistaCx2, CentrocampistaCentrale);
-        enableCombo(m_ui.comboBoxCentrocampistaCx3, CentrocampistaTrequartista);
-        enableCombo(m_ui.comboBoxAttaccanteCx, AttaccanteCentrale);
+        enableCombo(m_ui.comboBoxTrequartista3, CentrocampistaTrequartista);
+        enableCombo(m_ui.comboBoxAttaccanteCx3, AttaccanteCentrale);
         enableCombo(m_ui.comboBoxAttaccanteSx, AttaccanteMovimento);
         enableCombo(m_ui.comboBoxAttaccanteDx, AttaccanteMovimento);
         break;
@@ -789,8 +824,8 @@ void MainWindow::updateModules(const int& chosenModule)
         enableCombo(m_ui.comboBoxDifensoreSx, DifensoreTerzino);
         enableCombo(m_ui.comboBoxCentrocampistaCx1, CentrocampistaCentrale);
         enableCombo(m_ui.comboBoxCentrocampistaCx2, CentrocampistaCentrale);
-        enableCombo(m_ui.comboBoxCentrocampistaCx3, AttaccanteCentrale);
-        enableCombo(m_ui.comboBoxAttaccanteCx, AttaccanteCentrale);
+        enableCombo(m_ui.comboBoxAttaccanteCx1, AttaccanteCentrale);
+        enableCombo(m_ui.comboBoxAttaccanteCx2, AttaccanteCentrale);
         enableCombo(m_ui.comboBoxAttaccanteSx, AttaccanteMovimento, CentrocampistaEsterno);
         enableCombo(m_ui.comboBoxAttaccanteDx, AttaccanteMovimento, CentrocampistaEsterno);
         break;
@@ -814,7 +849,7 @@ void MainWindow::updateModules(const int& chosenModule)
         enableCombo(m_ui.comboBoxCentrocampistaCx2, CentrocampistaCentrale);
         enableCombo(m_ui.comboBoxCentrocampistaSx, CentrocampistaEsterno);
         enableCombo(m_ui.comboBoxCentrocampistaDx, CentrocampistaEsterno);
-        enableCombo(m_ui.comboBoxAttaccanteCx, CentrocampistaTrequartista);
+        enableCombo(m_ui.comboBoxTrequartista3, CentrocampistaTrequartista);
         enableCombo(m_ui.comboBoxAttaccanteSx, AttaccanteMovimento, AttaccanteCentrale);
         enableCombo(m_ui.comboBoxAttaccanteDx, AttaccanteMovimento, AttaccanteCentrale);
         break;
@@ -826,7 +861,7 @@ void MainWindow::updateModules(const int& chosenModule)
         enableCombo(m_ui.comboBoxCentrocampistaCx2, CentrocampistaCentrale);
         enableCombo(m_ui.comboBoxCentrocampistaSx, CentrocampistaEsterno);
         enableCombo(m_ui.comboBoxCentrocampistaDx, CentrocampistaEsterno);
-        enableCombo(m_ui.comboBoxAttaccanteCx, AttaccanteCentrale);
+        enableCombo(m_ui.comboBoxAttaccanteCx3, AttaccanteCentrale);
         enableCombo(m_ui.comboBoxAttaccanteSx, AttaccanteMovimento);
         enableCombo(m_ui.comboBoxAttaccanteDx, AttaccanteMovimento);
         break;
@@ -836,17 +871,10 @@ void MainWindow::updateModules(const int& chosenModule)
 void MainWindow::enableCombo(QComboBox* combo, RuoloEnum ruolo1, RuoloEnum ruolo2)
 {
     int comboId = combo->objectName().toInt();
-    //if (m_roleComboMap.contains(comboId))
-    //{
-        QList<int> list;
-        list.append(int(ruolo1));
-        list.append(int(ruolo2));
-        m_roleComboMap[comboId] = list;
-//    }
-//    else
-//    {
-//        m_roleComboMap.append()
-//    }
+    QList<int> list;
+    list.append(int(ruolo1));
+    list.append(int(ruolo2));
+    m_roleComboMap[comboId] = list;
 
     combo->setEnabled(true);
     combo->setVisible(true);
@@ -854,6 +882,7 @@ void MainWindow::enableCombo(QComboBox* combo, RuoloEnum ruolo1, RuoloEnum ruolo
     combo->clear();
     combo->addItem(EMPTY_PLAYER);
 
+    int lineupIndex = -1;
     int i=0;
     foreach (Giocatore* p, m_players)
     {
@@ -868,7 +897,13 @@ void MainWindow::enableCombo(QComboBox* combo, RuoloEnum ruolo1, RuoloEnum ruolo
             combo->setItemData(i+1, QColor(Qt::red), Qt::TextColorRole);
             i++;
         }
+
+        if (p->partita(0).Formazione() == comboId)
+            lineupIndex = i-1;
     }
+
+    if (lineupIndex > 0)
+        combo->setCurrentIndex(lineupIndex);
 }
 
 void MainWindow::disableAllCombo()
@@ -884,7 +919,12 @@ void MainWindow::disableAllCombo()
     m_ui.comboBoxCentrocampistaCx3->setEnabled(false);
     m_ui.comboBoxCentrocampistaSx->setEnabled(false);
     m_ui.comboBoxCentrocampistaDx->setEnabled(false);
-    m_ui.comboBoxAttaccanteCx->setEnabled(false);
+    m_ui.comboBoxAttaccanteCx1->setEnabled(false);
+    m_ui.comboBoxAttaccanteCx2->setEnabled(false);
+    m_ui.comboBoxAttaccanteCx3->setEnabled(false);
+    m_ui.comboBoxTrequartista1->setEnabled(false);
+    m_ui.comboBoxTrequartista2->setEnabled(false);
+    m_ui.comboBoxTrequartista3->setEnabled(false);
     m_ui.comboBoxAttaccanteDx->setEnabled(false);
     m_ui.comboBoxAttaccanteSx->setEnabled(false);
 
@@ -899,7 +939,12 @@ void MainWindow::disableAllCombo()
     m_ui.comboBoxCentrocampistaCx3->setVisible(false);
     m_ui.comboBoxCentrocampistaSx->setVisible(false);
     m_ui.comboBoxCentrocampistaDx->setVisible(false);
-    m_ui.comboBoxAttaccanteCx->setVisible(false);
+    m_ui.comboBoxAttaccanteCx1->setVisible(false);
+    m_ui.comboBoxAttaccanteCx2->setVisible(false);
+    m_ui.comboBoxAttaccanteCx3->setVisible(false);
+    m_ui.comboBoxTrequartista1->setVisible(false);
+    m_ui.comboBoxTrequartista2->setVisible(false);
+    m_ui.comboBoxTrequartista3->setVisible(false);
     m_ui.comboBoxAttaccanteDx->setVisible(false);
     m_ui.comboBoxAttaccanteSx->setVisible(false);
 }
@@ -1120,4 +1165,180 @@ void MainWindow::keyReleaseEvent(QKeyEvent *event)
         if (m_ui.stackedWidget->currentIndex() == 0)
             emit stackTo(5);
     }
+}
+
+void MainWindow::computeRanking()
+{
+    QSqlQuery query(*m_db);
+    QString qryStr;
+
+    if (!m_rankingComputed)
+    {
+        QMap<QString, Team*> teams;
+        // update flag when update has been downloaded
+
+        qryStr = "SELECT name from teamName;";
+        query.exec(qryStr);
+        while (query.next())
+        {
+            QString name = query.value(0).toString();
+            teams.insert(name, new Team(name));
+        }
+
+        qryStr = "SELECT * from fixture;";
+        query.exec(qryStr);
+        while (query.next())
+        {
+            if (query.value("played").toInt() == 1)
+            {
+                Team* team1 = teams[query.value("team1").toString()];
+                Team* team2 = teams[query.value("team2").toString()];
+                int score1 = query.value("goal1").toInt();
+                int score2 = query.value("goal2").toInt();
+                float points1 = query.value("points1").toFloat();
+                float points2 = query.value("points2").toFloat();
+
+                team1->m_played++;
+                team2->m_played++;
+
+                if (score1 > score2)
+                {
+                    team1->m_points += 2;
+                    team1->m_won += 1;
+                    team1->m_scored += score1;
+                    team1->m_got += score2;
+                    team1->m_fantaPoints += points1;
+
+                    //team2.m_points += 2;
+                    team2->m_lost += 1;
+                    team2->m_scored += score2;
+                    team2->m_got += score1;
+                    team2->m_fantaPoints += points2;
+                }
+                else if (score1 < score2)
+                {
+                    //team1.m_points += 2;
+                    team1->m_lost += 1;
+                    team1->m_scored += score1;
+                    team1->m_got += score2;
+                    team1->m_fantaPoints += points1;
+
+                    team2->m_points += 2;
+                    team2->m_won += 1;
+                    team2->m_scored += score2;
+                    team2->m_got += score1;
+                    team2->m_fantaPoints += points2;
+                }
+                else
+                {
+                    team1->m_points += 1;
+                    team1->m_drawn += 1;
+                    team1->m_scored += score1;
+                    team1->m_got += score2;
+                    team1->m_fantaPoints += points1;
+
+                    team2->m_points += 1;
+                    team2->m_drawn += 1;
+                    team2->m_scored += score2;
+                    team2->m_got += score1;
+                    team2->m_fantaPoints += points2;
+                }
+            }
+        }
+
+        QList<QString> sortedTeams;
+        foreach(QString key, teams.keys())
+            sortedTeams.append(key);
+
+        for (int i=0; i<sortedTeams.size()-1; i++)
+        {
+            for (int j=i+1; j<sortedTeams.size(); j++)
+            {
+                // todo improve sorting criteria
+                if (teams[sortedTeams[i]]->m_points <= teams[sortedTeams[j]]->m_points)
+                {
+                    QString temp = sortedTeams[i];
+                    sortedTeams[i] = sortedTeams[j];
+                    sortedTeams[j] = temp;
+                }
+            }
+        }
+
+        m_ui.tableWidgetRanking->setRowCount(teams.size());
+        m_ui.tableWidgetRanking->setColumnCount(10);
+        QStringList headers;
+        headers << "SQUADRA" << "P" << "G" << "V" << "N" << "P" << "GF" << "GS" << "FP" << "";
+        m_ui.tableWidgetRanking->setHorizontalHeaderLabels(headers);
+        m_ui.tableWidgetRanking->verticalHeader()->setVisible(false);
+        //m_ui.tableWidgetRanking->setEditTriggers(QAbstractItemView::NoEditTriggers);
+        //m_ui.tableWidgetRanking->setSelectionBehavior(QAbstractItemView::NoSelection);
+        //m_ui.tableWidgetRanking->setSelectionMode(QAbstractItemView::SingleSelection);
+        //m_ui.tableWidgetRanking->setShowGrid(false);
+        //m_ui.tableWidgetRanking->setStyleSheet("QTableView {selection-background-color: red;}");
+        //m_ui.tableWidgetRanking->setGeometry(QApplication::desktop()->screenGeometry());
+
+        for (int i=0; i<sortedTeams.size(); i++)
+        {
+            QString key = sortedTeams[i];
+            m_ui.tableWidgetRanking->setItem(i, 0, new QTableWidgetItem(key));
+            m_ui.tableWidgetRanking->setItem(i, 1, new QTableWidgetItem(QString::number(teams[key]->m_points)));
+            m_ui.tableWidgetRanking->setItem(i, 2, new QTableWidgetItem(QString::number(teams[key]->m_played)));
+            m_ui.tableWidgetRanking->setItem(i, 3, new QTableWidgetItem(QString::number(teams[key]->m_won)));
+            m_ui.tableWidgetRanking->setItem(i, 4, new QTableWidgetItem(QString::number(teams[key]->m_drawn)));
+            m_ui.tableWidgetRanking->setItem(i, 5, new QTableWidgetItem(QString::number(teams[key]->m_lost)));
+            m_ui.tableWidgetRanking->setItem(i, 6, new QTableWidgetItem(QString::number(teams[key]->m_scored)));
+            m_ui.tableWidgetRanking->setItem(i, 7, new QTableWidgetItem(QString::number(teams[key]->m_got)));
+            m_ui.tableWidgetRanking->setItem(i, 8, new QTableWidgetItem(QString::number(teams[key]->m_fantaPoints)));
+            m_ui.tableWidgetRanking->setItem(i, 9, new QTableWidgetItem(""));
+        }
+
+        //m_ui.tableWidgetRanking->setVisible(false);
+        //QRect vporig = m_ui.tableWidgetRanking->viewport()->geometry();
+        //QRect vpnew = vporig;
+        //vpnew.setWidth(std::numeric_limits<int>::max());
+        //m_ui.tableWidgetRanking->viewport()->setGeometry(vpnew);
+        m_ui.tableWidgetRanking->resizeColumnsToContents();
+        //m_ui.tableWidgetRanking->resizeRowsToContents();
+        //m_ui.tableWidgetRanking->viewport()->setGeometry(vporig);
+        m_ui.tableWidgetRanking->horizontalHeader()->setStretchLastSection(true);
+        //m_ui.tableWidgetRanking->horizontalHeader()->setSectionResizeMode(QHeaderView::AdjustToContents);
+        //m_ui.tableWidgetRanking->resizeColumnToContents(0);
+        //m_ui.tableWidgetRanking->setVisible(true);
+    }
+
+    if (m_round == -1)
+    {
+        qryStr = "SELECT max(round) FROM fixture WHERE played = 1;";
+        query.exec(qryStr);
+        if (query.first())
+        {
+            m_round = query.value(0).toInt();
+        }
+        else
+            m_round++;
+
+        qryStr = "SELECT max(round) FROM fixture;";
+        query.exec(qryStr);
+        if (query.first())
+        {
+            m_maxRounds = query.value(0).toInt();
+        }
+        qDebug() << m_round << m_maxRounds;
+    }
+
+    qryStr = "SELECT * FROM fixture where round = " + QString::number(m_round);
+    query.exec(qryStr);
+
+    QString results = "<b>Giornata " + QString::number(m_round+1)+"</b><br><pre width=\"30\">";
+    while(query.next())
+    {
+        results += QString("%1\t%2\t  %3 - %4<br>")
+                .arg(query.value("team1").toString(), -18, QChar(' '))
+                .arg(query.value("team2").toString(), -18, QChar(' '))
+                .arg(query.value("goal1").toString())
+                .arg(query.value("goal2").toString());
+    }
+    results += "</pre>";
+
+    m_ui.labelResults->setText(results);
 }

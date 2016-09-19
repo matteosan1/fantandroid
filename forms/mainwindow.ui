@@ -158,9 +158,15 @@ QGroupBox#groupBox {backgorund-image: url(:/res/soccer-field2.jpg);}</string>
                   <verstretch>0</verstretch>
                  </sizepolicy>
                 </property>
-                <property name="maximumSize">
+                <property name="minimumSize">
                  <size>
                   <width>300</width>
+                  <height>0</height>
+                 </size>
+                </property>
+                <property name="maximumSize">
+                 <size>
+                  <width>16777215</width>
                   <height>16777215</height>
                  </size>
                 </property>
@@ -182,9 +188,15 @@ QGroupBox#groupBox {backgorund-image: url(:/res/soccer-field2.jpg);}</string>
                   <verstretch>0</verstretch>
                  </sizepolicy>
                 </property>
-                <property name="maximumSize">
+                <property name="minimumSize">
                  <size>
                   <width>300</width>
+                  <height>0</height>
+                 </size>
+                </property>
+                <property name="maximumSize">
+                 <size>
+                  <width>16777215</width>
                   <height>16777215</height>
                  </size>
                 </property>
@@ -670,6 +682,15 @@ QGroupBox#groupBox {backgorund-image: url(:/res/soccer-field2.jpg);}</string>
             <property name="editTriggers">
              <set>QAbstractItemView::NoEditTriggers</set>
             </property>
+            <property name="tabKeyNavigation">
+             <bool>false</bool>
+            </property>
+            <property name="showDropIndicator" stdset="0">
+             <bool>false</bool>
+            </property>
+            <property name="dragDropOverwriteMode">
+             <bool>false</bool>
+            </property>
             <property name="selectionMode">
              <enum>QAbstractItemView::NoSelection</enum>
             </property>
@@ -826,7 +847,7 @@ QGroupBox#groupBox {backgorund-image: url(:/res/soccer-field2.jpg);}</string>
                 <item alignment="Qt::AlignHCenter">
                  <widget class="QComboBox" name="comboBoxPortiere">
                   <property name="enabled">
-                   <bool>false</bool>
+                   <bool>true</bool>
                   </property>
                   <property name="sizePolicy">
                    <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
@@ -900,7 +921,7 @@ QGroupBox#groupBox {backgorund-image: url(:/res/soccer-field2.jpg);}</string>
                 <item>
                  <widget class="QComboBox" name="comboBoxDifensoreCx1">
                   <property name="enabled">
-                   <bool>false</bool>
+                   <bool>true</bool>
                   </property>
                   <property name="sizePolicy">
                    <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
@@ -931,7 +952,7 @@ QGroupBox#groupBox {backgorund-image: url(:/res/soccer-field2.jpg);}</string>
                 <item>
                  <widget class="QComboBox" name="comboBoxDifensoreCx2">
                   <property name="enabled">
-                   <bool>false</bool>
+                   <bool>true</bool>
                   </property>
                   <property name="sizePolicy">
                    <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
@@ -979,7 +1000,7 @@ QGroupBox#groupBox {backgorund-image: url(:/res/soccer-field2.jpg);}</string>
                 <item>
                  <widget class="QComboBox" name="comboBoxDifensoreDx">
                   <property name="enabled">
-                   <bool>false</bool>
+                   <bool>true</bool>
                   </property>
                   <property name="sizePolicy">
                    <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
@@ -1023,7 +1044,7 @@ QGroupBox#groupBox {backgorund-image: url(:/res/soccer-field2.jpg);}</string>
                 <item>
                  <widget class="QComboBox" name="comboBoxDifensoreSx">
                   <property name="enabled">
-                   <bool>false</bool>
+                   <bool>true</bool>
                   </property>
                   <property name="sizePolicy">
                    <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
@@ -1071,7 +1092,7 @@ QGroupBox#groupBox {backgorund-image: url(:/res/soccer-field2.jpg);}</string>
                 <item>
                  <widget class="QComboBox" name="comboBoxDifensoreCx3">
                   <property name="enabled">
-                   <bool>false</bool>
+                   <bool>true</bool>
                   </property>
                   <property name="sizePolicy">
                    <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
@@ -1145,7 +1166,7 @@ QGroupBox#groupBox {backgorund-image: url(:/res/soccer-field2.jpg);}</string>
                 <item>
                  <widget class="QComboBox" name="comboBoxCentrocampistaCx1">
                   <property name="enabled">
-                   <bool>false</bool>
+                   <bool>true</bool>
                   </property>
                   <property name="sizePolicy">
                    <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
@@ -1176,7 +1197,7 @@ QGroupBox#groupBox {backgorund-image: url(:/res/soccer-field2.jpg);}</string>
                 <item>
                  <widget class="QComboBox" name="comboBoxCentrocampistaCx2">
                   <property name="enabled">
-                   <bool>false</bool>
+                   <bool>true</bool>
                   </property>
                   <property name="sizePolicy">
                    <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
@@ -1224,7 +1245,7 @@ QGroupBox#groupBox {backgorund-image: url(:/res/soccer-field2.jpg);}</string>
                 <item>
                  <widget class="QComboBox" name="comboBoxCentrocampistaDx">
                   <property name="enabled">
-                   <bool>false</bool>
+                   <bool>true</bool>
                   </property>
                   <property name="sizePolicy">
                    <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
@@ -1268,7 +1289,7 @@ QGroupBox#groupBox {backgorund-image: url(:/res/soccer-field2.jpg);}</string>
                 <item>
                  <widget class="QComboBox" name="comboBoxCentrocampistaSx">
                   <property name="enabled">
-                   <bool>false</bool>
+                   <bool>true</bool>
                   </property>
                   <property name="sizePolicy">
                    <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
@@ -1316,7 +1337,7 @@ QGroupBox#groupBox {backgorund-image: url(:/res/soccer-field2.jpg);}</string>
                 <item>
                  <widget class="QComboBox" name="comboBoxCentrocampistaCx3">
                   <property name="enabled">
-                   <bool>false</bool>
+                   <bool>true</bool>
                   </property>
                   <property name="sizePolicy">
                    <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
@@ -1577,7 +1598,7 @@ QGroupBox#groupBox {backgorund-image: url(:/res/soccer-field2.jpg);}</string>
                 <item>
                  <widget class="QComboBox" name="comboBoxAttaccanteDx">
                   <property name="enabled">
-                   <bool>false</bool>
+                   <bool>true</bool>
                   </property>
                   <property name="sizePolicy">
                    <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
@@ -1621,7 +1642,7 @@ QGroupBox#groupBox {backgorund-image: url(:/res/soccer-field2.jpg);}</string>
                 <item>
                  <widget class="QComboBox" name="comboBoxAttaccanteSx">
                   <property name="enabled">
-                   <bool>false</bool>
+                   <bool>true</bool>
                   </property>
                   <property name="sizePolicy">
                    <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
@@ -1669,7 +1690,7 @@ QGroupBox#groupBox {backgorund-image: url(:/res/soccer-field2.jpg);}</string>
                 <item>
                  <widget class="QComboBox" name="comboBoxAttaccanteCx3">
                   <property name="enabled">
-                   <bool>false</bool>
+                   <bool>true</bool>
                   </property>
                   <property name="sizePolicy">
                    <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
@@ -2322,6 +2343,9 @@ QGroupBox#groupBox {backgorund-image: url(:/res/soccer-field2.jpg);}</string>
                 <pointsize>12</pointsize>
                </font>
               </property>
+              <property name="frameShadow">
+               <enum>QFrame::Plain</enum>
+              </property>
               <property name="verticalScrollBarPolicy">
                <enum>Qt::ScrollBarAlwaysOff</enum>
               </property>
@@ -2331,6 +2355,21 @@ QGroupBox#groupBox {backgorund-image: url(:/res/soccer-field2.jpg);}</string>
               <property name="editTriggers">
                <set>QAbstractItemView::NoEditTriggers</set>
               </property>
+              <property name="tabKeyNavigation">
+               <bool>false</bool>
+              </property>
+              <property name="showDropIndicator" stdset="0">
+               <bool>false</bool>
+              </property>
+              <property name="dragDropOverwriteMode">
+               <bool>false</bool>
+              </property>
+              <property name="selectionMode">
+               <enum>QAbstractItemView::NoSelection</enum>
+              </property>
+              <attribute name="verticalHeaderHighlightSections">
+               <bool>false</bool>
+              </attribute>
              </widget>
             </item>
            </layout>
@@ -2521,6 +2560,9 @@ QGroupBox#groupBox {backgorund-image: url(:/res/soccer-field2.jpg);}</string>
               <property name="text">
                <string>TextLabel</string>
               </property>
+              <property name="alignment">
+               <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+              </property>
              </widget>
             </item>
            </layout>
@@ -2530,6 +2572,30 @@ QGroupBox#groupBox {backgorund-image: url(:/res/soccer-field2.jpg);}</string>
             <string>Top - Flop</string>
            </attribute>
           </widget>
+         </widget>
+        </item>
+        <item row="1" column="0">
+         <widget class="QPushButton" name="pushButtonStatExit">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Minimum" vsizetype="MinimumExpanding">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>16777215</width>
+            <height>80</height>
+           </size>
+          </property>
+          <property name="font">
+           <font>
+            <pointsize>20</pointsize>
+           </font>
+          </property>
+          <property name="text">
+           <string>Esci</string>
+          </property>
          </widget>
         </item>
        </layout>

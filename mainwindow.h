@@ -45,7 +45,8 @@ public:
     void init();
     void loadDB();
     void chooseYourTeam(bool overwrite=false);
-    void setTeamLogo(QLabel* qLabel, int size, QByteArray imageName);
+    void setTeamLogo(QLabel* qLabel, int size, QByteArray image);
+    QIcon setTeamIcon(int size, QByteArray image);
     void fillYourTeam();
     void teamSorter(QList<Giocatore*>& players);
     QString checkVersion();
@@ -69,7 +70,6 @@ public slots:
     // todo check limits
     void changeRoundUp() { if (m_round<m_maxRounds) m_round++; computeRanking(); }
     void changeRoundDown() { if (m_round > 0) m_round--; computeRanking(); }
-    void fillTopScorerRanking();
 
     void keyReleaseEvent(QKeyEvent* event);
 
@@ -82,8 +82,8 @@ private:
     void screenResolution(int& theWidth, int& theHeight);
     bool openDB();
     void computeRanking();
-
-private:
+    void fillTopScorerRanking();
+    QString formatTeamName(QString team);
     void fileSave();
 
     Ui::MainWindowTemp m_ui;

@@ -6,7 +6,7 @@ Giocatore::Giocatore()
 {
     m_cognome = "";
     m_prezzo = 0;
-    m_ruolo = Portiere;
+    m_ruolo = Nullo;
     for(int i=0; i<50; ++i)
         prestazioni[i].SetNull();
 }
@@ -228,23 +228,23 @@ RuoloEnum Giocatore::convertToRuoloEnum(const int value)
 {
     switch (value)
     {
-    case 0:
+    case 10:
         return Portiere;
-    case 1:
+    case 21:
         return DifensoreTerzino;
-    case 2:
+    case 22:
         return DifensoreCentrale;
-    case 3:
+    case 32:
         return CentrocampistaEsterno;
-    case 4:
+    case 31:
         return CentrocampistaCentrale;
-    case 5:
+    case 33:
         return CentrocampistaTrequartista;
-    case 6:
+    case 41:
         return AttaccanteCentrale;
-    case 7:
+    case 42:
         return AttaccanteMovimento;
     default:
-        return Portiere;
+        return Nullo;
     }
 }

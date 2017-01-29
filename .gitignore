@@ -10,4 +10,4 @@ moc*
 *.dylib
 fantandroid
 app_process
-qrc_app.cpp
+qrc_app.*

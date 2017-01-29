@@ -19,6 +19,7 @@
 #define OUTPUT_DIR "/data/data/org.qtproject.fantandroid/databases/"
 #else
 #define OUTPUT_DIR "/home/sani/databases/"
+//#define OUTPUT_DIR "/Users/sani/databases/"
 #endif
 
 class Punteggi;
@@ -30,6 +31,9 @@ class QComboBox;
 class QListWidgetItem;
 class QKeyEvent;
 //class QProgressBar;
+class NotificationClient;
+class Ranking;
+class Stats;
 
 class MainWindow : public QMainWindow
 {
@@ -46,7 +50,6 @@ public:
     void loadDB();
     void chooseYourTeam(bool overwrite=false);
     void setTeamLogo(QLabel* qLabel, int size, QByteArray image);
-    QIcon setTeamIcon(int size, QByteArray image);
     void fillYourTeam();
     void teamSorter(QList<Giocatore*>& players);
     QString checkVersion();
@@ -65,25 +68,25 @@ public slots:
     void removePanchinaro(QListWidgetItem*);
     void selectTeam();
     void selectRoster(QString teamName);
+    void singlePlayerStat(QModelIndex index);
     void configDownload(bool exitCode);
     void updateTeamChoice();
-    // todo check limits
-    void changeRoundUp() { if (m_round<m_maxRounds) m_round++; computeRanking(); }
-    void changeRoundDown() { if (m_round > 0) m_round--; computeRanking(); }
 
     void keyReleaseEvent(QKeyEvent* event);
 
 signals:
     void stackTo(int pageNumber);
 
+private slots:
+    void updateAndroidNotification();
+
 private:
     void enableCombo(QComboBox* combo, RuoloEnum ruolo1, RuoloEnum ruolo2 = Nullo);
     void disableAllCombo();
     void screenResolution(int& theWidth, int& theHeight);
     bool openDB();
-    void computeRanking();
     void fillTopScorerRanking();
-    QString formatTeamName(QString team);
+    void fillTopFlop();
     void fileSave();
 
     Ui::MainWindowTemp m_ui;
@@ -109,10 +112,13 @@ private:
     DownloadManager*       m_downloadManager;
     //QProgressBar*          m_progressBar;
     bool                   m_downloading;
-    bool                   m_rankingComputed;
-    int                    m_round;
-    int                    m_maxRounds;
-    bool                   m_topScorerRanking;
+
+    NotificationClient*    m_notification;
+    Ranking*               m_ranking;
+    Stats*                 m_stats;
+
+    int                    m_screenWidth;
+    int                    m_screenHeight;
 };
 
 #endif // MAINWINDOW_H

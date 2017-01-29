@@ -23,6 +23,9 @@
 #include "punteggi.h"
 #include "insertgiocatori.h"
 #include "team.h"
+#include "notificationclient.h"
+#include "ranking.h"
+#include "stats.h"
 
 #include <limits>
 
@@ -30,11 +33,7 @@ MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent),
       m_db(NULL),
       m_versionChecked(false),
-      m_downloading(false),
-      m_rankingComputed(false),
-      m_round(-1),
-      m_maxRounds(-1),
-      m_topScorerRanking(false)
+      m_downloading(false)
 {
     connect(this, SIGNAL(destroyed()), this, SLOT(close()));
     m_downloadManager = new DownloadManager();
@@ -46,8 +45,16 @@ MainWindow::MainWindow(QWidget *parent)
     }
 
     m_ui.setupUi(this);
+    screenResolution(m_screenWidth, m_screenHeight);
+    resize(m_screenWidth, m_screenHeight);
+    setMinimumSize (m_screenWidth, m_screenHeight); // prevent it from collapsing to zero immediately
+    adjustSize(); // resize the window
+    setMinimumSize (0, 0); // allow shrinking afterwards
+
     m_version = checkVersion();
     m_downloadManager->execute("https://dl.dropboxusercontent.com/s/rb1pqlwb0v4h6jl/version.txt?dl=0", OUTPUT_DIR);
+
+    m_notification = new NotificationClient(this);
 }
 
 MainWindow::~MainWindow()
@@ -55,12 +62,10 @@ MainWindow::~MainWindow()
     // todo fix destructor
     if (m_db != NULL)
     {
-    //qDebug() << m_db->isOpen() << m_db->isValid();
-    if (m_db->isOpen())
-    {
-        m_db->close();
-    }
-    delete m_db;
+        if (m_db->isOpen())
+            m_db->close();
+
+        delete m_db;
     }
 }
 
@@ -98,6 +103,8 @@ void MainWindow::configDownload(bool exitCode)
                 return;
             }
         }
+        else
+            QMessageBox::information(this, "Aggiornamento DB", "Aggiornamento DB completato !",  QMessageBox::Ok);
     }
 
     if (openDB())
@@ -260,7 +267,7 @@ void MainWindow::init()
     m_ui.labelTeamName->setText(m_teamLabel);
     int height, width;
     screenResolution(width, height);
-    int size = std::min(int(width*0.5), int(height*0.3));
+    int size = std::min(int(width*0.5), int(height*0.2));
     setTeamLogo(m_ui.labelPicture, size, m_teamImage);
     fillYourTeam();
 
@@ -337,6 +344,7 @@ void MainWindow::init()
     m_model = new GiocatoriInsert();
     m_ui.pushButtonRosterExit->setObjectName("RosterExit");
     connect(m_ui.pushButtonRosterExit, SIGNAL(clicked(bool)), this, SLOT(changeStack()));
+    connect(m_ui.tableViewRosters, SIGNAL(doubleClicked(QModelIndex)), this, SLOT(singlePlayerStat(QModelIndex)));
 
     m_ui.comboBoxRosterChoser->addItem(EMPTY_PLAYER);
 
@@ -351,16 +359,23 @@ void MainWindow::init()
     // setup settings stack
     connect(m_ui.pushButtonTeamUpdate, SIGNAL(clicked(bool)), this, SLOT(updateTeamChoice()));
     //connect(m_ui.pushButtonStat, SIGNAL(clicked(bool)), this, SLOT(updateTeamChoice()));
+    connect(m_ui.pushButtonNotification, SIGNAL(clicked(bool)), this, SLOT(updateAndroidNotification()));
 
     // setup ranking stack
+    m_ranking = new Ranking(m_screenWidth*0.9, m_db, m_ui.labelScores, m_ui.tableWidgetRanking, m_ui.tableWidgetScores);
+    m_ranking->init();
+    m_ranking->computeRanking();
+    m_ranking->reportResults();
     m_ui.pushButtonRanking->setObjectName("Ranking");
     connect(m_ui.pushButtonRanking, SIGNAL(clicked(bool)), this, SLOT(changeStack()));
     m_ui.pushButtonRankingExit->setObjectName("RankingExit");
     connect(m_ui.pushButtonRankingExit, SIGNAL(clicked(bool)), this, SLOT(changeStack()));
-    connect(m_ui.pushButtonRoundUp, SIGNAL(clicked(bool)), this, SLOT(changeRoundUp()));
-    connect(m_ui.pushButtonRoundDown, SIGNAL(clicked(bool)), this, SLOT(changeRoundDown()));
+    connect(m_ui.pushButtonRoundUp, SIGNAL(clicked(bool)), m_ranking, SLOT(changeRoundUp()));
+    connect(m_ui.pushButtonRoundDown, SIGNAL(clicked(bool)), m_ranking, SLOT(changeRoundDown()));
 
     // setup stat stack
+    m_stats = new Stats(m_db, m_ui.tableWidgetTopScorer, m_ui.tableWidgetTopWeek, m_ui.tableWidgetFlopWeek, m_ui.tableWidgetTopOverall);
+    m_stats->init();
     m_ui.pushButtonStat->setObjectName("Stats");
     connect(m_ui.pushButtonStat, SIGNAL(clicked(bool)), this, SLOT(changeStack()));
     m_ui.pushButtonStatExit->setObjectName("StatsExit");
@@ -545,12 +560,12 @@ void MainWindow::changeStack()
         }
         else if (sender->objectName() == "Ranking")
         {
-            computeRanking();
             emit stackTo(6);
         }
         else if (sender->objectName() == "Stats")
         {
-            fillTopScorerRanking();
+            m_stats->fillTopScorerRanking();
+            m_stats->fillTopFlop();
             emit stackTo(7);
         }
         else if (sender->objectName() == "RosterExit" or
@@ -580,7 +595,10 @@ void MainWindow::sendLineup()
                                               jsSubject.object<jstring>(),
                                               jsContent.object<jstring>()
                                               );
+#else
+    finalizeMessage();
 #endif
+
 }
 
 void MainWindow::playerSelected(QString player)
@@ -743,7 +761,7 @@ void MainWindow::updateModules(const int& chosenModule)
         enableCombo(m_ui.comboBoxCentrocampistaCx2, CentrocampistaCentrale);
         enableCombo(m_ui.comboBoxCentrocampistaCx3, CentrocampistaCentrale);
         enableCombo(m_ui.comboBoxTrequartista3, CentrocampistaTrequartista);
-        enableCombo(m_ui.comboBoxAttaccanteCx3, AttaccanteMovimento);
+        enableCombo(m_ui.comboBoxAttaccanteCx3, AttaccanteCentrale);
         break;
     case 2: // 5-3-2
         enableCombo(m_ui.comboBoxDifensoreSx, DifensoreTerzino);
@@ -1027,7 +1045,7 @@ QString MainWindow::finalizeMessage()
     text += "++++++++++++\n";
     foreach(QComboBox* combo, m_combos)
     {
-        if (combo->isEnabled())
+        if (combo->isVisible())
         {
             QString player = combo->currentText();
             RuoloEnum ruolo = Portiere;
@@ -1087,6 +1105,8 @@ QString MainWindow::finalizeMessage()
             }
         }
     }
+
+    qDebug() << text;
 
     return text;
 }
@@ -1158,19 +1178,6 @@ void MainWindow::setTeamLogo(QLabel* qLabel, int size, QByteArray image)
     qLabel->setPixmap(pixmap);
 }
 
-QIcon MainWindow::setTeamIcon(int size, QByteArray image)
-{
-    QPixmap pixmap;
-    if (pixmap.loadFromData(image))
-    {
-        pixmap = pixmap.scaled(size, size, Qt::KeepAspectRatio, Qt::FastTransformation);
-    }
-
-    QIcon icon(pixmap);
-
-    return icon;
-}
-
 void MainWindow::screenResolution(int& theWidth, int& theHeight)
 {
     QScreen *screen = QApplication::screens().at(0);
@@ -1198,226 +1205,52 @@ void MainWindow::keyReleaseEvent(QKeyEvent *event)
     }
 }
 
-void MainWindow::computeRanking()
+void MainWindow::singlePlayerStat(QModelIndex index)
 {
+    int row = index.row();
+    QString playerName = m_model->data(m_model->index(row, 1), Qt::DisplayRole).toString();
+    QString playerSurname = m_model->data(m_model->index(row, 1), Qt::DisplayRole).toString();
+    QString fullName = playerSurname + " " + playerName.left(1) + ".";
+
     QSqlQuery query(*m_db);
-    QString qryStr;
+    QString qryStr = "SELECT roster.surname||' '||substr(roster.name,1,1)||'.' AS fn, roster.role,";
+    qryStr += "SUM(played),";
+    qryStr += "SUM(yellowCard),";
+    qryStr += "SUM(redCard),";
+    qryStr += "SUM(scored),";
+    qryStr += "SUM(conceded),";
+    qryStr += "SUM(savedPenalty),";
+    qryStr += "SUM(failedPenalty),";
+    qryStr += "AVG(vote),";
+    qryStr += "AVG(finalVote) AS v";
+    qryStr += "FROM roster, playerStats WHERE fn=playerStats.name and playerStats.name=" + fullName + ";";
 
-    if (!m_rankingComputed)
-    {
-        QMap<QString, Team*> teams;
-        // update flag when update has been downloaded
-
-        qryStr = "SELECT name,image from teamName;";
-        query.exec(qryStr);
-        while (query.next())
-        {
-            QString name = query.value(0).toString();
-            QByteArray image = query.value(1).toByteArray();
-            teams.insert(name, new Team(name, image));
-        }
-
-        qryStr = "SELECT * from fixture;";
-        query.exec(qryStr);
-        while (query.next())
-        {
-            if (query.value("played").toInt() == 1)
-            {
-                Team* team1 = teams[query.value("team1").toString()];
-                Team* team2 = teams[query.value("team2").toString()];
-                int score1 = query.value("goal1").toInt();
-                int score2 = query.value("goal2").toInt();
-                float points1 = query.value("points1").toFloat();
-                float points2 = query.value("points2").toFloat();
-
-                team1->m_played++;
-                team2->m_played++;
-
-                if (score1 > score2)
-                {
-                    team1->m_points += 2;
-                    team1->m_won += 1;
-                    team1->m_scored += score1;
-                    team1->m_conceded += score2;
-                    team1->m_fantaPoints += points1;
-
-                    //team2.m_points += 2;
-                    team2->m_lost += 1;
-                    team2->m_scored += score2;
-                    team2->m_conceded += score1;
-                    team2->m_fantaPoints += points2;
-                }
-                else if (score1 < score2)
-                {
-                    //team1.m_points += 2;
-                    team1->m_lost += 1;
-                    team1->m_scored += score1;
-                    team1->m_conceded += score2;
-                    team1->m_fantaPoints += points1;
-
-                    team2->m_points += 2;
-                    team2->m_won += 1;
-                    team2->m_scored += score2;
-                    team2->m_conceded += score1;
-                    team2->m_fantaPoints += points2;
-                }
-                else
-                {
-                    team1->m_points += 1;
-                    team1->m_drawn += 1;
-                    team1->m_scored += score1;
-                    team1->m_conceded += score2;
-                    team1->m_fantaPoints += points1;
-
-                    team2->m_points += 1;
-                    team2->m_drawn += 1;
-                    team2->m_scored += score2;
-                    team2->m_conceded += score1;
-                    team2->m_fantaPoints += points2;
-                }
-            }
-        }
-
-        QList<QString> sortedTeams;
-        foreach(QString key, teams.keys())
-            sortedTeams.append(key);
-
-        for (int i=0; i<sortedTeams.size()-1; i++)
-        {
-            for (int j=i+1; j<sortedTeams.size(); j++)
-            {
-                // todo improve sorting criteria
-                if (teams[sortedTeams[i]]->m_points <= teams[sortedTeams[j]]->m_points)
-                {
-                    QString temp = sortedTeams[i];
-                    sortedTeams[i] = sortedTeams[j];
-                    sortedTeams[j] = temp;
-                }
-            }
-        }
-
-        m_ui.tableWidgetRanking->setRowCount(teams.size());
-        m_ui.tableWidgetRanking->setColumnCount(11);
-        QStringList headers;
-        headers << "" << "SQUADRA" << "P" << "G" << "V" << "N" << "P" << "GF" << "GS" << "FP" << "";
-        m_ui.tableWidgetRanking->setHorizontalHeaderLabels(headers);
-        m_ui.tableWidgetRanking->verticalHeader()->setVisible(false);
-        //m_ui.tableWidgetRanking->setEditTriggers(QAbstractItemView::NoEditTriggers);
-        //m_ui.tableWidgetRanking->setSelectionBehavior(QAbstractItemView::NoSelection);
-        //m_ui.tableWidgetRanking->setSelectionMode(QAbstractItemView::SingleSelection);
-        m_ui.tableWidgetRanking->setShowGrid(false);
-        //m_ui.tableWidgetRanking->setStyleSheet("QTableView {selection-background-color: red;}");
-        //m_ui.tableWidgetRanking->setGeometry(QApplication::desktop()->screenGeometry());
-
-        for (int i=0; i<sortedTeams.size(); i++)
-        {
-            QString key = sortedTeams[i];
-            m_ui.tableWidgetRanking->setItem(i, 0, new QTableWidgetItem(setTeamIcon(50, teams[key]->m_image), ""));
-            m_ui.tableWidgetRanking->setItem(i, 1, new QTableWidgetItem(key));
-            m_ui.tableWidgetRanking->setItem(i, 2, new QTableWidgetItem(QString::number(teams[key]->m_points)));
-            m_ui.tableWidgetRanking->setItem(i, 3, new QTableWidgetItem(QString::number(teams[key]->m_played)));
-            m_ui.tableWidgetRanking->setItem(i, 4, new QTableWidgetItem(QString::number(teams[key]->m_won)));
-            m_ui.tableWidgetRanking->setItem(i, 5, new QTableWidgetItem(QString::number(teams[key]->m_drawn)));
-            m_ui.tableWidgetRanking->setItem(i, 6, new QTableWidgetItem(QString::number(teams[key]->m_lost)));
-            m_ui.tableWidgetRanking->setItem(i, 7, new QTableWidgetItem(QString::number(teams[key]->m_scored)));
-            m_ui.tableWidgetRanking->setItem(i, 8, new QTableWidgetItem(QString::number(teams[key]->m_conceded)));
-            m_ui.tableWidgetRanking->setItem(i, 9, new QTableWidgetItem(QString::number(teams[key]->m_fantaPoints)));
-            m_ui.tableWidgetRanking->setItem(i, 10, new QTableWidgetItem(""));
-        }
-
-        //m_ui.tableWidgetRanking->setVisible(false);
-        //QRect vporig = m_ui.tableWidgetRanking->viewport()->geometry();
-        //QRect vpnew = vporig;
-        //vpnew.setWidth(std::numeric_limits<int>::max());
-        //m_ui.tableWidgetRanking->viewport()->setGeometry(vpnew);
-        m_ui.tableWidgetRanking->resizeColumnsToContents();
-        //m_ui.tableWidgetRanking->resizeRowsToContents();
-        //m_ui.tableWidgetRanking->viewport()->setGeometry(vporig);
-        m_ui.tableWidgetRanking->horizontalHeader()->setStretchLastSection(true);
-        //m_ui.tableWidgetRanking->horizontalHeader()->setSectionResizeMode(QHeaderView::AdjustToContents);
-        //m_ui.tableWidgetRanking->resizeColumnToContents(0);
-        //m_ui.tableWidgetRanking->setVisible(true);
-    }
-
-    if (m_round == -1)
-    {
-        qryStr = "SELECT max(round) FROM fixture WHERE played = 1;";
-        query.exec(qryStr);
-        if (query.first())
-        {
-            m_round = query.value(0).toInt();
-        }
-        else
-            m_round++;
-
-        qryStr = "SELECT max(round) FROM fixture;";
-        query.exec(qryStr);
-        if (query.first())
-        {
-            m_maxRounds = query.value(0).toInt();
-        }
-    }
-
-    qryStr = "SELECT * FROM fixture where round = " + QString::number(m_round);
     query.exec(qryStr);
-
-    QString results = "<b>Giornata " + QString::number(m_round+1)+"</b><br><pre width=\"30\">";
-    while(query.next())
+    if (query.first())
     {
-        QString team1 = formatTeamName(query.value("team1").toString());
-        QString team2 = formatTeamName(query.value("team2").toString());
-
-        results += QString("%1 %3 - %4 %2<br>")
-                .arg(team1, -10, QChar(' '))
-                .arg(team2, -10, QChar(' '))
-                .arg(query.value("goal1").toString())
-                .arg(query.value("goal2").toString());
-    }
-    results += "</pre>";
-
-    m_ui.labelResults->setText(results);
-}
-
-QString MainWindow::formatTeamName(QString team)
-{
-    //QString team1 = team;
-    if (team.length() > 10)
-    {
-        QStringList splittedTeam = team.split(" ");
-        if (splittedTeam[0].length() > 10)
-            return splittedTeam[0].left(8)+".";
+        int role = query.value(2).toInt();
+        QString textToShow = "Giocate: " + query.value(3).toString() + "\n";
+        textToShow += "Giocate: " + query.value(4).toString() + "\n";
+        textToShow += "Ammonizioni: " + query.value(5).toString() + "\n";
+        textToShow += "Esplusioni: " + query.value(6).toString() + "\n";
+        textToShow += "Assist: " + query.value(14).toString() + "\n";
+        if (role != 10)
+            textToShow += "Goal: " + query.value(7).toString() + "\n";
         else
-            return splittedTeam[0].trimmed();
+            textToShow += "Goal: " + query.value(8).toString() + "\n";
+        if (role != 10)
+            textToShow += "Rigori sbagliati: " + query.value(9).toString() + "\n";
+        else
+            textToShow += "Rigori parati: " + query.value(10).toString() + "\n";
+        textToShow += "Autogoal: " + query.value(11).toString() + "\n";
+        textToShow += "Media voto: " + query.value(12).toString() + "\n";
+        textToShow += "Fantamedia: " + query.value(13).toString() + "\n";
+
+        QMessageBox::information(this, fullName, textToShow, QMessageBox::Ok);
     }
-    else
-        return team;
 }
 
-void MainWindow::fillTopScorerRanking()
+void MainWindow::updateAndroidNotification()
 {
-    if (!m_topScorerRanking)
-    {
-        QString text = "CLASSIFICA CANNONIERI\n";
-        m_topScorerRanking = true; // todo fix it if an update occurs
-
-        QString qryStr = "SELECT name,surname,sum(scored) AS sscored FROM playerStats,roster where roster.id=playerStats.id ORDER BY sscored DESC;";
-        QSqlQuery query(*m_db);
-        query.exec(qryStr);
-
-        int i=0;
-        while (query.next())
-        {
-            //if (query.value(2).toInt() == 0)
-            //    break;
-            text += query.value(1).toString()+" "+
-                    query.value(0).toString().left(1)+".\t"+
-                    query.value(2).toString();
-
-            i++;
-            if (i==10)
-                break;
-        }
-
-        m_ui.labelCapocannonieri->setText(text);
-    }
+    m_notification->setNotification("hello world");
 }

@@ -7,6 +7,7 @@
 #include <QList>
 #include <QStringList>
 #include <QByteArray>
+#include <QCryptographicHash>
 
 #include "ui_mainwindow.h"
 #include "mainwindow.h"
@@ -18,8 +19,7 @@
 #ifdef Q_OS_ANDROID
 #define OUTPUT_DIR "/data/data/org.qtproject.fantandroid/databases/"
 #else
-#define OUTPUT_DIR "/home/sani/databases/"
-//#define OUTPUT_DIR "/Users/sani/databases/"
+#define OUTPUT_DIR "/home/sani/"
 #endif
 
 class Punteggi;
@@ -52,8 +52,9 @@ public:
     void setTeamLogo(QLabel* qLabel, int size, QByteArray image);
     void fillYourTeam();
     void teamSorter(QList<Giocatore*>& players);
-    QString checkVersion();
-    bool isNewVersionAvailable();
+    void checkVersion();
+    QByteArray computeMD5(const QString &fileName, QCryptographicHash::Algorithm hashAlgorithm);
+    //bool isNewVersionAvailable();
     void clearTable();
     void clearLineup();
     void clearBench();
@@ -70,6 +71,8 @@ public slots:
     void selectRoster(QString teamName);
     void singlePlayerStat(QModelIndex index);
     void configDownload(bool exitCode);
+    void initializeApp();
+
     void updateTeamChoice();
 
     void keyReleaseEvent(QKeyEvent* event);
@@ -79,8 +82,12 @@ signals:
 
 private slots:
     void updateAndroidNotification();
+    void sameHashMsg();
+    void cannotOpenFileMsg(QString filename);
 
 private:
+    QComboBox* returnComboBox(const int index);
+    void assignPositionToPlayer(const int realModule);
     void enableCombo(QComboBox* combo, RuoloEnum ruolo1, RuoloEnum ruolo2 = Nullo);
     void disableAllCombo();
     void screenResolution(int& theWidth, int& theHeight);
@@ -107,10 +114,7 @@ private:
 
     QList<QComboBox*>      m_combos;
 
-    bool                   m_versionChecked;
-    QString                m_version;
     DownloadManager*       m_downloadManager;
-    //QProgressBar*          m_progressBar;
     bool                   m_downloading;
 
     NotificationClient*    m_notification;

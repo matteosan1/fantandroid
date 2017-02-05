@@ -6,6 +6,10 @@
 #include <QtNetwork/QNetworkReply>
 #include <QUrl>
 #include <QString>
+#include <QCryptographicHash>
+#include <QByteArray>
+
+#define HASH_ALGORITHM QCryptographicHash::Sha1
 
 class QIODevice;
 
@@ -27,8 +31,12 @@ public slots:
 
 signals:
     void downloadDone(bool exitCode);
+    void sameHash();
+    void cannotOpenFile(QString filename);
 
 private:
+    QByteArray computeHash(const QString& filename);
+
     QString                m_destination;
     QNetworkAccessManager* m_manager;
     QList<QNetworkReply*>  m_currentDownloads;

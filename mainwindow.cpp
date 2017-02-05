@@ -12,7 +12,8 @@
 #include <QScreen>
 #include <QKeyEvent>
 
-// #define DEBUG
+//#define DEBUG
+#define DB_FILE      "https://dl.dropboxusercontent.com/s/0p5psz455zjaxb1/team.sqlite?dl=0"
 
 #ifdef Q_OS_ANDROID
 #include <QtAndroidExtras>
@@ -32,84 +33,85 @@
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent),
       m_db(NULL),
-      m_versionChecked(false),
       m_downloading(false)
 {
     connect(this, SIGNAL(destroyed()), this, SLOT(close()));
     m_downloadManager = new DownloadManager();
     connect(m_downloadManager, SIGNAL(downloadDone(bool)), this, SLOT(configDownload(bool)));
+    connect(m_downloadManager, SIGNAL(sameHash()), this, SLOT(sameHashMsg()));
+    connect(m_downloadManager, SIGNAL(cannotOpenFile(QString)), this, SLOT(cannotOpenFileMsg(QString)));
 
-    if (!QDir(OUTPUT_DIR).exists())
-    {
-        QDir().mkdir(OUTPUT_DIR);
+    if (!QDir(OUTPUT_DIR).exists()) {
+        if(!QDir().mkdir(OUTPUT_DIR)) {
+            QMessageBox::critical(this, "Dir", "Cannot create databases dir.", QMessageBox::Ok);
+        }
     }
 
     m_ui.setupUi(this);
     screenResolution(m_screenWidth, m_screenHeight);
     resize(m_screenWidth, m_screenHeight);
-    setMinimumSize (m_screenWidth, m_screenHeight); // prevent it from collapsing to zero immediately
+    setMinimumSize(m_screenWidth, m_screenHeight);  // prevent it from collapsing to zero immediately
     adjustSize(); // resize the window
-    setMinimumSize (0, 0); // allow shrinking afterwards
+    setMinimumSize(0, 0);  // allow shrinking afterwards
 
-    m_version = checkVersion();
-    m_downloadManager->execute("https://dl.dropboxusercontent.com/s/rb1pqlwb0v4h6jl/version.txt?dl=0", OUTPUT_DIR);
+    checkVersion();
 
     m_notification = new NotificationClient(this);
+}
+
+void MainWindow::sameHashMsg()
+{
+    QMessageBox::information(this, "Same Hash", "Local and remote DB have the same hash", QMessageBox::Ok);
+}
+
+void MainWindow::cannotOpenFileMsg(QString filename)
+{
+    QMessageBox::critical(this, "Cannot open file", "The " + filename + " file can't be opened", QMessageBox::Ok);
 }
 
 MainWindow::~MainWindow()
 {
     // todo fix destructor
-    if (m_db != NULL)
-    {
-        if (m_db->isOpen())
+    if (m_db != NULL) {
+        if (m_db->isOpen()) {
             m_db->close();
+        }
 
         delete m_db;
     }
 }
 
-QList<Giocatore*> MainWindow::giocatori()
+void MainWindow::checkVersion()
 {
-    GiocatoriInsert* temp = dynamic_cast<GiocatoriInsert*>(m_model);
+    if (m_downloadManager->isConnectedToNetwork()) {
+        m_downloadManager->execute(DB_FILE, OUTPUT_DIR);
+    }
+
+    initializeApp();
+}
+
+QList<Giocatore *> MainWindow::giocatori()
+{
+    GiocatoriInsert *temp = dynamic_cast<GiocatoriInsert *>(m_model);
     return temp->GetGiocatori();
 }
 
 void MainWindow::configDownload(bool exitCode)
 {
     // download failed !
-    if (!exitCode)
-    {
-        if (!m_versionChecked)
-        {
-            // assume current version is ok
-            m_versionChecked = true;
-        }
-        else
-            QMessageBox::warning(this, "Connessione fallita", "Impossibile scaricare gli aggiornamenti",  QMessageBox::Cancel);
+    if (!exitCode) {
+        QMessageBox::warning(this, "Connessione fallita", "Impossibile scaricare gli aggiornamenti",  QMessageBox::Cancel);
     }
-    else
-    {
-        if (!m_versionChecked)
-        {
-            m_versionChecked = true;
-
-            if (isNewVersionAvailable())
-            {
-                if (openDB())
-                    chooseYourTeam();
-
-                m_downloadManager->execute("https://dl.dropboxusercontent.com/s/0p5psz455zjaxb1/team.sqlite?dl=0", OUTPUT_DIR);
-                return;
-            }
-        }
-        else
-            QMessageBox::information(this, "Aggiornamento DB", "Aggiornamento DB completato !",  QMessageBox::Ok);
-    }
-
-    if (openDB())
-    {
+    else {
+        QMessageBox::information(this, "Aggiornamento DB", "Aggiornamento completato !",  QMessageBox::Ok);
         //m_sqlModel = new QSqlTableModel(this, *m_db);
+        initializeApp();
+    }
+}
+
+void MainWindow::initializeApp()
+{
+    if (openDB()) {
         chooseYourTeam();
     }
 }
@@ -119,78 +121,21 @@ bool MainWindow::openDB()
     QString filename = QString(OUTPUT_DIR)+ QString("team.sqlite");
     QFile file(filename);
 
-    if (file.exists())
-    {
-        m_db = new QSqlDatabase(QSqlDatabase::addDatabase( "QSQLITE","MyConnection" ));
-        m_db->setDatabaseName(QString(OUTPUT_DIR)+ QString("team.sqlite"));
+    if (file.exists()) {
+        if (m_db != NULL and m_db->isOpen()) {
+            m_db->close();
+        }
+
+        m_db = new QSqlDatabase(QSqlDatabase::addDatabase("QSQLITE", "MyConnection"));
+        m_db->setDatabaseName(filename);
         m_db->open();
+        m_ui.stackedWidget->setCurrentIndex(0);
 
         return true;
     }
     else {
-        if (!m_downloadManager->isConnectedToNetwork())
-        {
-            QMessageBox::critical(this, "Impossibile scaricare il DB", "Connettiti ad internet e riavvia fantandroid", QMessageBox::Ok);
-            m_ui.stackedWidget->setCurrentIndex(0);
-            //if (ret == QMessageBox::Ok)
-            //    emit stackTo(0);
-        }
-
         return false;
     }
-
-    return true;
-}
-
-QString MainWindow::checkVersion()
-{
-    QString filename = QString(OUTPUT_DIR)+QString("version.txt");
-    QFile file(filename);
-
-    if (!file.exists())
-    {
-        if (!m_downloadManager->isConnectedToNetwork())
-        {
-            QMessageBox::critical(this, "Impossibile scaricare il file di versione", "Connettiti ad internet e riavvia fantandroid", QMessageBox::Ok);
-            m_ui.stackedWidget->setCurrentIndex(0);
-            //if (ret == QMessageBox::Ok)
-            //    emit stackTo(0);
-        }
-        else
-        {
-            m_downloadManager->execute("https://dl.dropboxusercontent.com/s/rb1pqlwb0v4h6jl/version.txt?dl=0", OUTPUT_DIR);
-        }
-
-        return "0";
-    }
-
-    if(!file.open(QIODevice::ReadOnly)) {
-        QMessageBox::information(this, "Error in reading version file", file.errorString(), QMessageBox::Cancel);
-        return "0";
-    }
-
-    QTextStream in(&file);
-    QString version = in.readLine();
-
-    file.close();
-
-    if (m_db != NULL and !m_db->isOpen())
-    {
-        if (openDB())
-        chooseYourTeam();
-    }
-
-    return version;
-}
-
-bool MainWindow::isNewVersionAvailable()
-{
-    QString newVersion = checkVersion();
-
-    if (newVersion.toInt() > m_version.toInt())
-        return true;
-    else
-        return false;
 }
 
 void MainWindow::chooseYourTeam(bool overwrite)
@@ -202,14 +147,11 @@ void MainWindow::chooseYourTeam(bool overwrite)
     query.exec(qryStr);
     query.first();
 
-    if (m_teamLabel.isEmpty() or overwrite)
-    {
-        if (query.first() and !overwrite)
-        {
+    if (m_teamLabel.isEmpty() or overwrite) {
+        if (query.first() and !overwrite) {
             m_teamLabel = query.value("name").toString();
         }
-        else
-        {
+        else {
             QString phoneNumber = QInputDialog::getText(NULL, QString("Inserisci il tuo numero di telefono:"), QString("Numero di Telefono (senza 0039):"));
             //m_sqlModel->setFilter("phone='"+phonenumber+"';");
             //if (m_sqlModel->select())
@@ -217,20 +159,18 @@ void MainWindow::chooseYourTeam(bool overwrite)
             qryStr = QString("SELECT name from teamName WHERE phone=\""+phoneNumber+"\";");
 
             query.exec(qryStr);
-            if (query.first())
-            {
+
+            if (query.first()) {
                 m_teamLabel = query.value("name").toString();
             }
-            else
-            {
+            else {
                 m_teamLabel = "";
                 QMessageBox::critical(this, "ERRORE", "Impossibile trovare il tuo numero nel DB", QMessageBox::Ok);
             }
         }
     }
 
-    if (!m_teamLabel.isEmpty())
-    {
+    if (!m_teamLabel.isEmpty()) {
         qryStr = QString("DELETE FROM yourTeam;");
         query.exec(qryStr);
         qryStr = QString("INSERT INTO yourTeam (name) VALUES (\"") + m_teamLabel + QString("\");");
@@ -280,28 +220,19 @@ void MainWindow::init()
     // setup lineup stack
     m_ui.comboBoxModulo->clear();
     m_points = new Punteggi();
-    m_ui.comboBoxModulo->addItem(m_points->m_schemiString[0]);
-    for (int i=1; i<NUMERO_SCHEMI; i++)
-    {
-        //if (m_punteggi->m_schemi[i-1] == 1)
-        m_ui.comboBoxModulo->addItem(m_points->m_schemiString[i]);
+    m_points->loadPunteggi(m_db);
+
+    foreach (QString modulo, m_points->schemi()) {
+        m_ui.comboBoxModulo->addItem(modulo);
     }
 
     connect(m_ui.comboBoxModulo, SIGNAL(currentIndexChanged(int)), this, SLOT(updateModules(int)));
 
-    m_ui.pushButtonAggiungiDifensore->setObjectName("buttonDifesa");
-    m_ui.pushButtonAggiungiCentrocampista->setObjectName("buttonCentrocampo");
-    m_ui.pushButtonAggiungiAttaccante->setObjectName("buttonAttacco");
-    connect(m_ui.pushButtonAggiungiDifensore, SIGNAL(clicked(bool)), this, SLOT(aggiungiPushed()));
-    connect(m_ui.pushButtonAggiungiCentrocampista, SIGNAL(clicked(bool)), this, SLOT(aggiungiPushed()));
-    connect(m_ui.pushButtonAggiungiAttaccante, SIGNAL(clicked(bool)), this, SLOT(aggiungiPushed()));
+    m_ui.pushButtonAggiungiPanchinaro->setObjectName("buttonPanchinaro");
+    connect(m_ui.pushButtonAggiungiPanchinaro, SIGNAL(clicked(bool)), this, SLOT(aggiungiPushed()));
 
-    m_ui.listPanchinariDifesa->setObjectName("listDifesa");
-    m_ui.listPanchinariCentrocampo->setObjectName("listCentrocampo");
-    m_ui.listPanchinariAttacco->setObjectName("listAttacco");
-    connect(m_ui.listPanchinariDifesa, SIGNAL(itemDoubleClicked(QListWidgetItem*)), this, SLOT(removePanchinaro(QListWidgetItem*)));
-    connect(m_ui.listPanchinariCentrocampo, SIGNAL(itemDoubleClicked(QListWidgetItem*)), this, SLOT(removePanchinaro(QListWidgetItem*)));
-    connect(m_ui.listPanchinariAttacco, SIGNAL(itemDoubleClicked(QListWidgetItem*)), this, SLOT(removePanchinaro(QListWidgetItem*)));
+    m_ui.listPanchinari->setObjectName("listPanchinari");
+    connect(m_ui.listPanchinari, SIGNAL(itemDoubleClicked(QListWidgetItem *)), this, SLOT(removePanchinaro(QListWidgetItem *)));
 
     m_ui.pushButtonLineupOK->setObjectName("LineupOK");
     connect(m_ui.pushButtonLineupOK, SIGNAL(pressed()), this, SLOT(changeStack()));
@@ -330,8 +261,8 @@ void MainWindow::init()
     m_combos.append(m_ui.comboBoxAttaccanteCx3);
 
     int index = 0;
-    foreach (QComboBox* combo, m_combos)
-    {
+
+    foreach (QComboBox *combo, m_combos) {
         combo->setObjectName(QString::number(index));
         connect(combo, SIGNAL(currentIndexChanged(QString)), this, SLOT(playerSelected(QString)));
         index++;
@@ -350,10 +281,11 @@ void MainWindow::init()
 
     qryStr = QString("SELECT * from teamName;");
     query.exec(qryStr);
-    while (query.next())
-    {
+
+    while (query.next()) {
         m_ui.comboBoxRosterChoser->addItem(query.value("name").toString());
     }
+
     connect(m_ui.comboBoxRosterChoser, SIGNAL(currentIndexChanged(QString)), this, SLOT(selectRoster(QString)));
 
     // setup settings stack
@@ -393,9 +325,9 @@ void MainWindow::fillYourTeam()
     query.exec(qryStr);
 
     m_players.clear();
-    while(query.next())
-    {
-        Giocatore* player = new Giocatore();
+
+    while (query.next()) {
+        Giocatore *player = new Giocatore();
         player->setCognome(query.value("surname").toString());
         player->setNome(query.value("name").toString());
         player->setRuolo(RuoloEnum(query.value("role").toInt()));
@@ -406,8 +338,9 @@ void MainWindow::fillYourTeam()
 
 void MainWindow::selectRoster(QString team)
 {
-    if (team == EMPTY_PLAYER)
+    if (team == EMPTY_PLAYER) {
         return;
+    }
 
     QString qryStr;
     QSqlQuery query(*m_db);
@@ -425,15 +358,15 @@ void MainWindow::selectRoster(QString team)
     query.exec(qryStr);
 
     m_model->removeRows(0, m_rosters.size());
-    for (int i=0; i<m_rosters.size(); ++i)
-    {
+
+    for (int i=0; i<m_rosters.size(); ++i) {
         delete(m_rosters[i]);
     }
+
     m_rosters.clear();
 
-    while(query.next())
-    {
-        Giocatore* player = new Giocatore();
+    while (query.next()) {
+        Giocatore *player = new Giocatore();
         player->setCognome(query.value("surname").toString().toUpper());
         player->setNome(query.value("name").toString().toUpper());
         player->setRuolo(RuoloEnum(query.value("role").toInt()));
@@ -485,93 +418,64 @@ void MainWindow::selectRoster(QString team)
     QScroller::scroller(m_ui.tableViewRosters->viewport())->setScrollerProperties(ScrollerProperties);
 
 #ifdef Q_OS_ANDROID
-    QScroller::grabGesture(m_ui.listPanchinariDifesa->viewport(), QScroller::TouchGesture);
+    QScroller::grabGesture(m_ui.listPanchinari->viewport(), QScroller::TouchGesture);
 #else
-    QScroller::grabGesture(m_ui.listPanchinariDifesa->viewport(), QScroller::LeftMouseButtonGesture);
+    QScroller::grabGesture(m_ui.listPanchinari->viewport(), QScroller::LeftMouseButtonGesture);
 #endif
-    QScrollerProperties ScrollerProperties2 = QScroller::scroller(m_ui.listPanchinariDifesa->viewport())->scrollerProperties();
+    QScrollerProperties ScrollerProperties2 = QScroller::scroller(m_ui.listPanchinari->viewport())->scrollerProperties();
     ScrollerProperties2.setScrollMetric(QScrollerProperties::VerticalOvershootPolicy, OvershootPolicy);
     ScrollerProperties2.setScrollMetric(QScrollerProperties::HorizontalOvershootPolicy, OvershootPolicy);
-    QScroller::scroller(m_ui.listPanchinariDifesa->viewport())->setScrollerProperties(ScrollerProperties);
-
-#ifdef Q_OS_ANDROID
-    QScroller::grabGesture(m_ui.listPanchinariCentrocampo->viewport(), QScroller::TouchGesture);
-#else
-    QScroller::grabGesture(m_ui.listPanchinariCentrocampo->viewport(), QScroller::LeftMouseButtonGesture);
-#endif
-    QScrollerProperties ScrollerProperties3 = QScroller::scroller(m_ui.listPanchinariCentrocampo->viewport())->scrollerProperties();
-    ScrollerProperties3.setScrollMetric(QScrollerProperties::VerticalOvershootPolicy, OvershootPolicy);
-    ScrollerProperties3.setScrollMetric(QScrollerProperties::HorizontalOvershootPolicy, OvershootPolicy);
-    QScroller::scroller(m_ui.listPanchinariCentrocampo->viewport())->setScrollerProperties(ScrollerProperties);
-
-#ifdef Q_OS_ANDROID
-    QScroller::grabGesture(m_ui.listPanchinariAttacco->viewport(), QScroller::TouchGesture);
-#else
-    QScroller::grabGesture(m_ui.listPanchinariAttacco->viewport(), QScroller::LeftMouseButtonGesture);
-#endif
-    QScrollerProperties ScrollerProperties4 = QScroller::scroller(m_ui.listPanchinariAttacco->viewport())->scrollerProperties();
-    ScrollerProperties4.setScrollMetric(QScrollerProperties::VerticalOvershootPolicy, OvershootPolicy);
-    ScrollerProperties4.setScrollMetric(QScrollerProperties::HorizontalOvershootPolicy, OvershootPolicy);
-    QScroller::scroller(m_ui.listPanchinariAttacco->viewport())->setScrollerProperties(ScrollerProperties);
+    QScroller::scroller(m_ui.listPanchinari->viewport())->setScrollerProperties(ScrollerProperties);
 }
 
 void MainWindow::changeStack()
 {
-    QPushButton* sender = (QPushButton*)QObject::sender();
-    if (sender != NULL)
-    {
-        if (sender->objectName() == "Team")
-        {
+    QPushButton *sender = (QPushButton *)QObject::sender();
+
+    if (sender != NULL) {
+        if (sender->objectName() == "Team") {
             //if (m_db->transaction())
-                emit stackTo(3);
+            emit stackTo(3);
         }
-        else if (sender->objectName() == "Lineup")
-        {
+        else if (sender->objectName() == "Lineup") {
             emit stackTo(4);
         }
-        else if (sender->objectName() == "LineupOK")
-        {
+        else if (sender->objectName() == "LineupOK") {
             int retCapitano = QMessageBox::Ok;
             int retPanchina = QMessageBox::Ok;
 
-            if (m_ui.comboBoxCapitano->currentIndex() == 0)
-            {
+            if (m_ui.comboBoxCapitano->currentIndex() == 0) {
                 retCapitano = QMessageBox::warning(this, "AVVISO", "Non hai selezionato il capitano.", QMessageBox::Ok | QMessageBox::Cancel);
             }
 
-            if (m_ui.listPanchinariAttacco->count() == 0 && m_ui.listPanchinariDifesa->count() == 0 && m_ui.listPanchinariCentrocampo->count() == 0)
-            {
+            //if (m_ui.listPanchinariAttacco->count() == 0 && m_ui.listPanchinariDifesa->count() == 0 && m_ui.listPanchinariCentrocampo->count() == 0)
+            if (m_ui.listPanchinari->count() == 0) {
                 retPanchina = QMessageBox::warning(this, "AVVISO", "Non hai giocatori da mettere in panchina ?", QMessageBox::Ok | QMessageBox::Cancel);
             }
 
-            if (retCapitano == QMessageBox::Ok && retPanchina == QMessageBox::Ok)
-            {
+            if (retCapitano == QMessageBox::Ok && retPanchina == QMessageBox::Ok) {
                 sendLineup();
                 clearTable();
                 emit stackTo(0);
             }
         }
-        else if (sender->objectName() == "LineupCancel")
-        {
+        else if (sender->objectName() == "LineupCancel") {
             QString title = "Formazione";
             QMessageBox::warning(this, title, "Formazione non terminata");
             clearTable();
             emit stackTo(0);
         }
-        else if (sender->objectName() == "Ranking")
-        {
+        else if (sender->objectName() == "Ranking") {
             emit stackTo(6);
         }
-        else if (sender->objectName() == "Stats")
-        {
+        else if (sender->objectName() == "Stats") {
             m_stats->fillTopScorerRanking();
             m_stats->fillTopFlop();
             emit stackTo(7);
         }
         else if (sender->objectName() == "RosterExit" or
                  sender->objectName() == "RankingExit" or
-                 sender->objectName() == "StatsExit")
-        {
+                 sender->objectName() == "StatsExit") {
             //updateTeam();
             emit stackTo(0);
         }
@@ -590,11 +494,11 @@ void MainWindow::sendLineup()
     QAndroidJniObject jsContent = QAndroidJniObject::fromString(finalizeMessage());
 
     QAndroidJniObject::callStaticMethod<void>("com.example.android.tools.QShareUtil",
-                                              "share",
-                                              "(Ljava/lang/String;Ljava/lang/String;)V",
-                                              jsSubject.object<jstring>(),
-                                              jsContent.object<jstring>()
-                                              );
+            "share",
+            "(Ljava/lang/String;Ljava/lang/String;)V",
+            jsSubject.object<jstring>(),
+            jsContent.object<jstring>()
+                                             );
 #else
     finalizeMessage();
 #endif
@@ -603,41 +507,36 @@ void MainWindow::sendLineup()
 
 void MainWindow::playerSelected(QString player)
 {
-    QComboBox* sender = (QComboBox*)QObject::sender();
-    if (sender != NULL)
-    {
+    QComboBox *sender = (QComboBox *)QObject::sender();
+
+    if (sender != NULL) {
         int senderId = sender->objectName().toInt();
 
-        if (player == EMPTY_PLAYER)
-        {
-            foreach(Giocatore* p, m_players)
-            {
+        if (player == EMPTY_PLAYER) {
+            foreach (Giocatore *p, m_players) {
                 int index = p->partita(0).Formazione();
-                if (index == senderId)
-                {
+
+                if (index == senderId) {
                     p->partita(0).SetFormazione(-1);
                     break;
                 }
             }
         }
-        else
-        {
-            foreach(Giocatore* p, m_players)
-            {
-                if (p->nomeCompleto() == player)
-                {
+        else {
+            foreach (Giocatore *p, m_players) {
+                if (p->nomeCompleto() == player) {
                     int index = p->partita(0).Formazione();
-                    foreach(Giocatore* q, m_players)
-                    {
-                        if (q->partita(0).Formazione() == senderId)
-                        {
+
+                    foreach (Giocatore *q, m_players) {
+                        if (q->partita(0).Formazione() == senderId) {
                             q->partita(0).SetFormazione(-1);
                             break;
                         }
                     }
 
-                    if (index != -1)
+                    if (index != -1) {
                         m_combos[index]->setCurrentIndex(0);
+                    }
 
                     p->partita(0).SetFormazione(senderId);
                     break;
@@ -647,48 +546,41 @@ void MainWindow::playerSelected(QString player)
     }
 
     int nGiocano = 0;
-    foreach (Giocatore* p, m_players)
-    {
+
+    foreach (Giocatore *p, m_players) {
         int index = p->partita(0).Formazione();
-        if (index != -1 and m_combos[index]->isVisible())
+
+        if (index != -1 and m_combos[index]->isVisible()) {
             nGiocano++;
+        }
     }
 
-    if (nGiocano == 11)
-    {
+    if (nGiocano == 11) {
         m_ui.pushButtonLineupOK->setEnabled(true);
         m_ui.comboBoxCapitano->clear();
-        m_ui.comboBoxPanchinariDifesa->clear();
-        m_ui.comboBoxPanchinariCentrocampo->clear();
-        m_ui.comboBoxPanchinariAttacco->clear();
-
+        m_ui.comboBoxPanchinari->clear();
         m_ui.comboBoxCapitano->addItem(EMPTY_PLAYER);
         m_ui.comboBoxCapitano->setCurrentIndex(0);
 
-        foreach (Giocatore* p, m_players)
-        {
+        foreach (Giocatore *p, m_players) {
             int index = p->partita(0).Formazione();
-            if (index != -1 and m_combos[index]->isVisible())
+
+            if (index != -1 and m_combos[index]->isVisible()) {
                 m_ui.comboBoxCapitano->addItem(p->nomeCompleto());
-            else
-            {
+            }
+            else {
                 int ruolo = p->ruolo()/10;
-                if (ruolo == 2)
-                    m_ui.comboBoxPanchinariDifesa->addItem(p->nomeCompleto());
-                else if (ruolo == 3)
-                    m_ui.comboBoxPanchinariCentrocampo->addItem(p->nomeCompleto());
-                else if (ruolo == 4)
-                    m_ui.comboBoxPanchinariAttacco->addItem(p->nomeCompleto());
+
+                if (ruolo >= 2) {
+                    m_ui.comboBoxPanchinari->addItem(p->nomeCompleto());
+                }
             }
         }
     }
-    else
-    {
+    else {
         m_ui.pushButtonLineupOK->setEnabled(false);
         m_ui.comboBoxCapitano->clear();
-        m_ui.comboBoxPanchinariDifesa->clear();
-        m_ui.comboBoxPanchinariCentrocampo->clear();
-        m_ui.comboBoxPanchinariAttacco->clear();
+        m_ui.comboBoxPanchinari->clear();
     }
 }
 
@@ -701,216 +593,84 @@ void MainWindow::clearTable()
 void MainWindow::clearLineup()
 {
     m_ui.comboBoxModulo->setCurrentIndex(0); // move somewherelse
-    foreach (QComboBox* combo, m_combos)
-        combo->setCurrentIndex(0);
 
-    foreach (Giocatore* p, m_players)
+    foreach (QComboBox *combo, m_combos) {
+        combo->setCurrentIndex(0);
+    }
+
+    foreach (Giocatore *p, m_players) {
         p->partita(0).SetFormazione(-1);
+    }
 }
 
 void MainWindow::clearBench()
 {
     m_ui.comboBoxCapitano->setCurrentIndex(0);
-    m_ui.comboBoxPanchinariDifesa->setCurrentIndex(0);
-    m_ui.comboBoxPanchinariCentrocampo->setCurrentIndex(0);
-    m_ui.comboBoxPanchinariAttacco->setCurrentIndex(0);
-    m_ui.listPanchinariDifesa->clear();
-    m_ui.listPanchinariCentrocampo->clear();
-    m_ui.listPanchinariAttacco->clear();
+    m_ui.comboBoxPanchinari->setCurrentIndex(0);
+    m_ui.listPanchinari->clear();
 }
 
-void MainWindow::updateModules(const int& chosenModule)
+QComboBox *MainWindow::returnComboBox(const int index)
+{
+//    m_combos.append(m_ui.comboBoxPortiere);
+//    m_combos.append(m_ui.comboBoxDifensoreDx);        // 1
+//    m_combos.append(m_ui.comboBoxDifensoreSx);        // 2
+//    m_combos.append(m_ui.comboBoxDifensoreCx1);       // 3
+//    m_combos.append(m_ui.comboBoxDifensoreCx2);       // 4
+//    m_combos.append(m_ui.comboBoxDifensoreCx3);       // 5
+//    m_combos.append(m_ui.comboBoxCentrocampistaDx);   // 6
+//    m_combos.append(m_ui.comboBoxCentrocampistaSx);   // 7
+//    m_combos.append(m_ui.comboBoxCentrocampistaCx1);  // 8
+//    m_combos.append(m_ui.comboBoxCentrocampistaCx2);  // 9
+//    m_combos.append(m_ui.comboBoxCentrocampistaCx3);  // 10
+//    m_combos.append(m_ui.comboBoxTrequartista1);      // 11
+//    m_combos.append(m_ui.comboBoxTrequartista2);      // 12
+//    m_combos.append(m_ui.comboBoxTrequartista3);      // 13
+//    m_combos.append(m_ui.comboBoxAttaccanteDx);       // 14
+//    m_combos.append(m_ui.comboBoxAttaccanteSx);       // 15
+//    m_combos.append(m_ui.comboBoxAttaccanteCx1);      // 16
+//    m_combos.append(m_ui.comboBoxAttaccanteCx2);      // 17
+//    m_combos.append(m_ui.comboBoxAttaccanteCx3);      // 18
+
+#ifdef DEBUG
+    qDebug() << index;
+#endif
+    return m_combos[index];
+}
+
+void MainWindow::assignPositionToPlayer(const int realModule)
+{
+    QString qryStr;
+    QSqlQuery query(*m_db);
+
+    qryStr = "SELECT * FROM availableModules WHERE id="+QString::number(realModule)+";";
+
+    if (query.exec(qryStr)) {
+        while (query.next()) {
+            if (query.value(2).toInt() != 0) {
+                enableCombo(returnComboBox(query.value(1).toInt()), (RuoloEnum)query.value(2).toInt(), (RuoloEnum)query.value(3).toInt());
+            }
+            else {
+                enableCombo(returnComboBox(query.value(1).toInt()), (RuoloEnum)query.value(2).toInt());
+            }
+        }
+    }
+    else {
+        qDebug() << query.lastError().text();
+    }
+}
+
+void MainWindow::updateModules(const int &chosenModule)
 {
     clearBench();
-
-    int realModule = -1;
-    int counter = 0;
-    for (int i=1; i<NUMERO_SCHEMI; i++)
-    {
-        //if (m_punteggi->m_schemi[i-1] != 0)
-        counter++;
-
-        if (counter == chosenModule)
-            realModule = i-1;
-    }
 
     disableAllCombo();
     enableCombo(m_ui.comboBoxPortiere, Portiere);
 
-    switch(realModule)
-    {
-    case 0: // 5-4-1
-        enableCombo(m_ui.comboBoxDifensoreSx, DifensoreTerzino);
-        enableCombo(m_ui.comboBoxDifensoreDx, DifensoreTerzino);
-        enableCombo(m_ui.comboBoxDifensoreCx1, DifensoreCentrale);
-        enableCombo(m_ui.comboBoxDifensoreCx2, DifensoreCentrale);
-        enableCombo(m_ui.comboBoxDifensoreCx3, DifensoreCentrale);
-        enableCombo(m_ui.comboBoxCentrocampistaCx1, CentrocampistaCentrale);
-        enableCombo(m_ui.comboBoxCentrocampistaCx2, CentrocampistaCentrale);
-        enableCombo(m_ui.comboBoxCentrocampistaSx, CentrocampistaEsterno);
-        enableCombo(m_ui.comboBoxCentrocampistaDx, CentrocampistaEsterno);
-        enableCombo(m_ui.comboBoxAttaccanteCx3, AttaccanteCentrale);
-        break;
-    case 1: // 5-3-1-1
-        enableCombo(m_ui.comboBoxDifensoreSx, DifensoreTerzino);
-        enableCombo(m_ui.comboBoxDifensoreDx, DifensoreTerzino);
-        enableCombo(m_ui.comboBoxDifensoreCx1, DifensoreCentrale);
-        enableCombo(m_ui.comboBoxDifensoreCx2, DifensoreCentrale);
-        enableCombo(m_ui.comboBoxDifensoreCx3, DifensoreCentrale);
-        enableCombo(m_ui.comboBoxCentrocampistaCx1, CentrocampistaCentrale);
-        enableCombo(m_ui.comboBoxCentrocampistaCx2, CentrocampistaCentrale);
-        enableCombo(m_ui.comboBoxCentrocampistaCx3, CentrocampistaCentrale);
-        enableCombo(m_ui.comboBoxTrequartista3, CentrocampistaTrequartista);
-        enableCombo(m_ui.comboBoxAttaccanteCx3, AttaccanteCentrale);
-        break;
-    case 2: // 5-3-2
-        enableCombo(m_ui.comboBoxDifensoreSx, DifensoreTerzino);
-        enableCombo(m_ui.comboBoxDifensoreDx, DifensoreTerzino);
-        enableCombo(m_ui.comboBoxDifensoreCx1, DifensoreCentrale);
-        enableCombo(m_ui.comboBoxDifensoreCx2, DifensoreCentrale);
-        enableCombo(m_ui.comboBoxDifensoreCx3, DifensoreCentrale);
-        enableCombo(m_ui.comboBoxCentrocampistaCx1, CentrocampistaCentrale);
-        enableCombo(m_ui.comboBoxCentrocampistaCx2, CentrocampistaCentrale);
-        enableCombo(m_ui.comboBoxCentrocampistaCx3, CentrocampistaCentrale);
-        enableCombo(m_ui.comboBoxAttaccanteSx, AttaccanteMovimento, AttaccanteCentrale);
-        enableCombo(m_ui.comboBoxAttaccanteDx, AttaccanteMovimento, AttaccanteCentrale);
-        break;
-    case 3: // 4-5-1
-        enableCombo(m_ui.comboBoxDifensoreSx, DifensoreTerzino);
-        enableCombo(m_ui.comboBoxDifensoreDx, DifensoreTerzino);
-        enableCombo(m_ui.comboBoxDifensoreCx1, DifensoreCentrale);
-        enableCombo(m_ui.comboBoxDifensoreCx2, DifensoreCentrale);
-        enableCombo(m_ui.comboBoxCentrocampistaCx1, CentrocampistaCentrale);
-        enableCombo(m_ui.comboBoxCentrocampistaCx2, CentrocampistaCentrale);
-        enableCombo(m_ui.comboBoxCentrocampistaCx3, CentrocampistaCentrale);
-        enableCombo(m_ui.comboBoxCentrocampistaSx, CentrocampistaEsterno);
-        enableCombo(m_ui.comboBoxCentrocampistaDx, CentrocampistaEsterno);
-        enableCombo(m_ui.comboBoxAttaccanteCx3, AttaccanteCentrale);
-        break;
-    case 4: // 4-4-2
-        enableCombo(m_ui.comboBoxDifensoreSx, DifensoreTerzino);
-        enableCombo(m_ui.comboBoxDifensoreDx, DifensoreTerzino);
-        enableCombo(m_ui.comboBoxDifensoreCx1, DifensoreCentrale);
-        enableCombo(m_ui.comboBoxDifensoreCx2, DifensoreCentrale);
-        enableCombo(m_ui.comboBoxCentrocampistaCx1, CentrocampistaCentrale);
-        enableCombo(m_ui.comboBoxCentrocampistaCx2, CentrocampistaCentrale);
-        enableCombo(m_ui.comboBoxCentrocampistaSx, CentrocampistaEsterno);
-        enableCombo(m_ui.comboBoxCentrocampistaDx, CentrocampistaEsterno);
-        enableCombo(m_ui.comboBoxAttaccanteDx, AttaccanteMovimento, AttaccanteCentrale);
-        enableCombo(m_ui.comboBoxAttaccanteSx, AttaccanteMovimento, AttaccanteCentrale);
-        break;
-    case 5: // 4-3-2-1
-        enableCombo(m_ui.comboBoxDifensoreSx, DifensoreTerzino);
-        enableCombo(m_ui.comboBoxDifensoreDx, DifensoreTerzino);
-        enableCombo(m_ui.comboBoxDifensoreCx1, DifensoreCentrale);
-        enableCombo(m_ui.comboBoxDifensoreCx2, DifensoreCentrale);
-        enableCombo(m_ui.comboBoxCentrocampistaCx1, CentrocampistaCentrale);
-        enableCombo(m_ui.comboBoxCentrocampistaCx2, CentrocampistaCentrale);
-        enableCombo(m_ui.comboBoxCentrocampistaCx3, CentrocampistaCentrale);
-        enableCombo(m_ui.comboBoxTrequartista1, CentrocampistaTrequartista);
-        enableCombo(m_ui.comboBoxTrequartista2, CentrocampistaTrequartista);
-        enableCombo(m_ui.comboBoxAttaccanteCx3, AttaccanteCentrale);
-        break;
-    case 6: // 4-3-1-2
-        enableCombo(m_ui.comboBoxDifensoreSx, DifensoreTerzino);
-        enableCombo(m_ui.comboBoxDifensoreDx, DifensoreTerzino);
-        enableCombo(m_ui.comboBoxDifensoreCx1, DifensoreCentrale);
-        enableCombo(m_ui.comboBoxDifensoreCx2, DifensoreCentrale);
-        enableCombo(m_ui.comboBoxCentrocampistaCx1, CentrocampistaCentrale);
-        enableCombo(m_ui.comboBoxCentrocampistaCx2, CentrocampistaCentrale);
-        enableCombo(m_ui.comboBoxCentrocampistaCx3, CentrocampistaCentrale);
-        enableCombo(m_ui.comboBoxTrequartista3, CentrocampistaTrequartista);
-        enableCombo(m_ui.comboBoxAttaccanteDx, AttaccanteCentrale, AttaccanteMovimento);
-        enableCombo(m_ui.comboBoxAttaccanteSx, AttaccanteCentrale, AttaccanteMovimento);
-        break;
-    case 7: // 4-3-3
-        enableCombo(m_ui.comboBoxDifensoreSx, DifensoreTerzino);
-        enableCombo(m_ui.comboBoxDifensoreDx, DifensoreTerzino);
-        enableCombo(m_ui.comboBoxDifensoreCx1, DifensoreCentrale);
-        enableCombo(m_ui.comboBoxDifensoreCx2, DifensoreCentrale);
-        enableCombo(m_ui.comboBoxCentrocampistaCx1, CentrocampistaCentrale);
-        enableCombo(m_ui.comboBoxCentrocampistaCx2, CentrocampistaCentrale);
-        enableCombo(m_ui.comboBoxCentrocampistaCx3, CentrocampistaCentrale);
-        enableCombo(m_ui.comboBoxAttaccanteCx3, AttaccanteCentrale);
-        enableCombo(m_ui.comboBoxAttaccanteDx, AttaccanteMovimento);
-        enableCombo(m_ui.comboBoxAttaccanteSx, AttaccanteMovimento);
-        break;
-    case 8: // 4-2-3-1
-        enableCombo(m_ui.comboBoxDifensoreCx1, DifensoreCentrale);
-        enableCombo(m_ui.comboBoxDifensoreCx2, DifensoreCentrale);
-        enableCombo(m_ui.comboBoxDifensoreDx, DifensoreTerzino);
-        enableCombo(m_ui.comboBoxDifensoreSx, DifensoreTerzino);
-        enableCombo(m_ui.comboBoxCentrocampistaCx1, CentrocampistaCentrale);
-        enableCombo(m_ui.comboBoxCentrocampistaCx2, CentrocampistaCentrale);
-        enableCombo(m_ui.comboBoxTrequartista3, CentrocampistaTrequartista);
-        enableCombo(m_ui.comboBoxAttaccanteCx3, AttaccanteCentrale);
-        enableCombo(m_ui.comboBoxTrequartista1, CentrocampistaEsterno, CentrocampistaTrequartista);
-        enableCombo(m_ui.comboBoxTrequartista2, CentrocampistaEsterno, CentrocampistaTrequartista);
-        break;
-    case 9: // 4-2-1-3
-        enableCombo(m_ui.comboBoxDifensoreCx1, DifensoreCentrale);
-        enableCombo(m_ui.comboBoxDifensoreCx2, DifensoreCentrale);
-        enableCombo(m_ui.comboBoxDifensoreDx, DifensoreTerzino);
-        enableCombo(m_ui.comboBoxDifensoreSx, DifensoreTerzino);
-        enableCombo(m_ui.comboBoxCentrocampistaCx1, CentrocampistaCentrale);
-        enableCombo(m_ui.comboBoxCentrocampistaCx2, CentrocampistaCentrale);
-        enableCombo(m_ui.comboBoxTrequartista3, CentrocampistaTrequartista);
-        enableCombo(m_ui.comboBoxAttaccanteCx3, AttaccanteCentrale);
-        enableCombo(m_ui.comboBoxAttaccanteSx, AttaccanteMovimento);
-        enableCombo(m_ui.comboBoxAttaccanteDx, AttaccanteMovimento);
-        break;
-    case 10: // 4-2-4
-        enableCombo(m_ui.comboBoxDifensoreCx1, DifensoreCentrale);
-        enableCombo(m_ui.comboBoxDifensoreCx2, DifensoreCentrale);
-        enableCombo(m_ui.comboBoxDifensoreDx, DifensoreTerzino);
-        enableCombo(m_ui.comboBoxDifensoreSx, DifensoreTerzino);
-        enableCombo(m_ui.comboBoxCentrocampistaCx1, CentrocampistaCentrale);
-        enableCombo(m_ui.comboBoxCentrocampistaCx2, CentrocampistaCentrale);
-        enableCombo(m_ui.comboBoxAttaccanteCx1, AttaccanteCentrale);
-        enableCombo(m_ui.comboBoxAttaccanteCx2, AttaccanteCentrale);
-        enableCombo(m_ui.comboBoxAttaccanteSx, AttaccanteMovimento, CentrocampistaEsterno);
-        enableCombo(m_ui.comboBoxAttaccanteDx, AttaccanteMovimento, CentrocampistaEsterno);
-        break;
-    case 11: // 3-5-2
-        enableCombo(m_ui.comboBoxDifensoreCx1, DifensoreCentrale);
-        enableCombo(m_ui.comboBoxDifensoreCx2, DifensoreCentrale);
-        enableCombo(m_ui.comboBoxDifensoreCx3, DifensoreCentrale);
-        enableCombo(m_ui.comboBoxCentrocampistaCx1, CentrocampistaCentrale);
-        enableCombo(m_ui.comboBoxCentrocampistaCx2, CentrocampistaCentrale);
-        enableCombo(m_ui.comboBoxCentrocampistaCx3, CentrocampistaCentrale);
-        enableCombo(m_ui.comboBoxCentrocampistaSx, CentrocampistaEsterno);
-        enableCombo(m_ui.comboBoxCentrocampistaDx, CentrocampistaEsterno);
-        enableCombo(m_ui.comboBoxAttaccanteSx, AttaccanteMovimento, AttaccanteCentrale);
-        enableCombo(m_ui.comboBoxAttaccanteDx, AttaccanteMovimento, AttaccanteCentrale);
-        break;
-    case 12: // 3-4-1-2
-        enableCombo(m_ui.comboBoxDifensoreCx1, DifensoreCentrale);
-        enableCombo(m_ui.comboBoxDifensoreCx2, DifensoreCentrale);
-        enableCombo(m_ui.comboBoxDifensoreCx3, DifensoreCentrale);
-        enableCombo(m_ui.comboBoxCentrocampistaCx1, CentrocampistaCentrale);
-        enableCombo(m_ui.comboBoxCentrocampistaCx2, CentrocampistaCentrale);
-        enableCombo(m_ui.comboBoxCentrocampistaSx, CentrocampistaEsterno);
-        enableCombo(m_ui.comboBoxCentrocampistaDx, CentrocampistaEsterno);
-        enableCombo(m_ui.comboBoxTrequartista3, CentrocampistaTrequartista);
-        enableCombo(m_ui.comboBoxAttaccanteSx, AttaccanteMovimento, AttaccanteCentrale);
-        enableCombo(m_ui.comboBoxAttaccanteDx, AttaccanteMovimento, AttaccanteCentrale);
-        break;
-    case 13: // 3-4-3
-        enableCombo(m_ui.comboBoxDifensoreCx1, DifensoreCentrale);
-        enableCombo(m_ui.comboBoxDifensoreCx2, DifensoreCentrale);
-        enableCombo(m_ui.comboBoxDifensoreCx3, DifensoreCentrale);
-        enableCombo(m_ui.comboBoxCentrocampistaCx1, CentrocampistaCentrale);
-        enableCombo(m_ui.comboBoxCentrocampistaCx2, CentrocampistaCentrale);
-        enableCombo(m_ui.comboBoxCentrocampistaSx, CentrocampistaEsterno);
-        enableCombo(m_ui.comboBoxCentrocampistaDx, CentrocampistaEsterno);
-        enableCombo(m_ui.comboBoxAttaccanteCx3, AttaccanteCentrale);
-        enableCombo(m_ui.comboBoxAttaccanteSx, AttaccanteMovimento);
-        enableCombo(m_ui.comboBoxAttaccanteDx, AttaccanteMovimento);
-        break;
-    }
+    assignPositionToPlayer(chosenModule);
 }
 
-void MainWindow::enableCombo(QComboBox* combo, RuoloEnum ruolo1, RuoloEnum ruolo2)
+void MainWindow::enableCombo(QComboBox *combo, RuoloEnum ruolo1, RuoloEnum ruolo2)
 {
     int comboId = combo->objectName().toInt();
     combo->setVisible(true);
@@ -921,17 +681,18 @@ void MainWindow::enableCombo(QComboBox* combo, RuoloEnum ruolo1, RuoloEnum ruolo
 
     // check if admitted roles are the same
     // if so return otherwise change list of players
-    if (list.size() == m_roleComboMap[comboId].size())
-    {
+    if (list.size() == m_roleComboMap[comboId].size()) {
         bool sameRoles = true;
-        for (int i=0; i<list.size(); i++)
-        {
-            if (list[i] != m_roleComboMap[comboId].at(i))
+
+        for (int i=0; i<list.size(); i++) {
+            if (list[i] != m_roleComboMap[comboId].at(i)) {
                 sameRoles = false;
+            }
         }
 
-        if (sameRoles)
+        if (sameRoles) {
             return;
+        }
     }
 
     m_roleComboMap[comboId] = list;
@@ -940,26 +701,26 @@ void MainWindow::enableCombo(QComboBox* combo, RuoloEnum ruolo1, RuoloEnum ruolo
 
     int lineupIndex = -1;
     int i=0;
-    foreach (Giocatore* p, m_players)
-    {
-        if (p->ruolo() == ruolo1 or p->ruolo() == ruolo2)
-        {
+
+    foreach (Giocatore *p, m_players) {
+        if (p->ruolo() == ruolo1 or p->ruolo() == ruolo2) {
             combo->addItem(p->nomeCompleto());
             i++;
         }
-        else if (p->ruolo()/10 == (ruolo1/10) or p->ruolo()/10 == (ruolo2/10))
-        {
+        else if (p->ruolo()/10 == (ruolo1/10) or p->ruolo()/10 == (ruolo2/10)) {
             combo->addItem(p->nomeCompleto());
             combo->setItemData(i+1, QColor(Qt::red), Qt::TextColorRole);
             i++;
         }
 
-        if (p->partita(0).Formazione() == comboId)
+        if (p->partita(0).Formazione() == comboId) {
             lineupIndex = i-1;
+        }
     }
 
-    if (lineupIndex > 0)
+    if (lineupIndex > 0) {
         combo->setCurrentIndex(lineupIndex);
+    }
 }
 
 void MainWindow::disableAllCombo()
@@ -987,50 +748,31 @@ void MainWindow::disableAllCombo()
 
 void MainWindow::aggiungiPushed()
 {
-    QPushButton* button = (QPushButton*)QObject::sender();
-    if (button != NULL)
-    {
-        QListWidget* list;
-        QComboBox* combo;
-        if (button->objectName() == "buttonDifesa")
-        {
-            list  = m_ui.listPanchinariDifesa;
-            combo = m_ui.comboBoxPanchinariDifesa;
+    QListWidget *list = m_ui.listPanchinari;
+    QComboBox *combo  = m_ui.comboBoxPanchinari;
+    QString player = combo->currentText();
+
+    bool alreadyIn = false;
+
+    for (int i=0; i<list->count(); ++i) {
+        if (player == list->item(i)->text()) {
+            alreadyIn = true;
+            break;
         }
-        else if (button->objectName() == "buttonCentrocampo")
-        {
-            list  = m_ui.listPanchinariCentrocampo;
-            combo = m_ui.comboBoxPanchinariCentrocampo;
-        }
-        else if (button->objectName() == "buttonAttacco")
-        {
-            list  = m_ui.listPanchinariAttacco;
-            combo = m_ui.comboBoxPanchinariAttacco;
+    }
+
+    if (!alreadyIn) {
+        int row = list->currentRow();
+
+        if (row == -1) {
+            row = list->count() + 1;
         }
 
-        QString player = combo->currentText();
-
-        bool alreadyIn = false;
-        for (int i=0; i<list->count(); ++i)
-        {
-            if (player == list->item(i)->text())
-            {
-                alreadyIn = true;
-                break;
-            }
-        }
-
-        if (!alreadyIn)
-        {
-            int row = list->currentRow();
-            if (row == -1)
-                row = list->count() + 1;
-            list->insertItem(row+1, player);
-        }
+        list->insertItem(row+1, player);
     }
 }
 
-void MainWindow::removePanchinaro(QListWidgetItem* item)
+void MainWindow::removePanchinaro(QListWidgetItem *item)
 {
     delete item;
 }
@@ -1043,70 +785,64 @@ QString MainWindow::finalizeMessage()
     text += m_teamLabel.toUpper() + "\n";
     text += "Modulo: " + m_ui.comboBoxModulo->currentText() + "\n";
     text += "++++++++++++\n";
-    foreach(QComboBox* combo, m_combos)
-    {
-        if (combo->isVisible())
-        {
+
+    foreach (QComboBox *combo, m_combos) {
+        if (combo->isVisible()) {
             QString player = combo->currentText();
             RuoloEnum ruolo = Portiere;
 
             bool isMisplaced = true;
-            foreach (Giocatore* p, m_players)
-            {
-                if (p->nomeCompleto() == player)
-                {
+
+            foreach (Giocatore *p, m_players) {
+                if (p->nomeCompleto() == player) {
                     ruolo = p->ruolo();
                     int comboId = combo->objectName().toInt();
 
-                    foreach (int l, m_roleComboMap[comboId])
-                    {
-                        if (int(p->ruolo()) == l)
+                    foreach (int l, m_roleComboMap[comboId]) {
+                        if (int(p->ruolo()) == l) {
                             isMisplaced = false;
+                        }
                     }
                 }
             }
 
-            if (player == capitano)
+            if (player == capitano) {
                 text += "*";
+            }
 
-            if (isMisplaced)
+            if (isMisplaced) {
                 text += "_" + player.toLower() + " [" + Giocatore::ruoloToString(ruolo) + "]_";
-            else
+            }
+            else {
                 text += player + " [" + Giocatore::ruoloToString(ruolo) + "]";
+            }
 
-            if (player == capitano)
+            if (player == capitano) {
                 text += " (C)*\n";
-            else
+            }
+            else {
                 text += "\n";
-        }
-    }
-
-    text = text + "--------------\n";
-    QListWidget* list;
-    for (int nPanch=0; nPanch<3; nPanch++)
-    {
-        if (nPanch == 0)
-            list = m_ui.listPanchinariDifesa;
-        else if (nPanch == 1)
-            list = m_ui.listPanchinariCentrocampo;
-        else if (nPanch == 2)
-            list = m_ui.listPanchinariAttacco;
-
-        for (int i=0; i<list->count(); ++i)
-        {
-            QString player = list->item(i)->text();
-            foreach (Giocatore* p, m_players)
-            {
-                if (player == p->nomeCompleto())
-                {
-                    text += player + " [" + Giocatore::ruoloToString(p->ruolo()) + "]\n";
-                    break;
-                }
             }
         }
     }
 
+    text = text + "--------------\n";
+    QListWidget *list = m_ui.listPanchinari;
+
+    for (int i=0; i<list->count(); ++i) {
+        QString player = list->item(i)->text();
+
+        foreach (Giocatore *p, m_players) {
+            if (player == p->nomeCompleto()) {
+                text += player + " [" + Giocatore::ruoloToString(p->ruolo()) + "]\n";
+                break;
+            }
+        }
+    }
+
+#ifdef DEBUG
     qDebug() << text;
+#endif
 
     return text;
 }
@@ -1117,25 +853,22 @@ void MainWindow::fileSave()
     QSqlQuery query(*m_db);
     QSqlQuery query2(*m_db);
 
-    for (int i=0; i<m_players.size(); ++i)
-    {
+    for (int i=0; i<m_players.size(); ++i) {
         qryStr = "SELECT * FROM roster WHERE name=\""+m_players.at(i)->nome()+"\" and surname=\""+m_players.at(i)->cognome()+"\";";
-        if (query.exec(qryStr))
-        {
-            if (!query.first())
-            {
+
+        if (query.exec(qryStr)) {
+            if (!query.first()) {
                 qryStr = "INSERT INTO roster (name, surname, role) VALUES (\""+m_players.at(i)->nome()+"\",\""
-                        + m_players.at(i)->cognome()+"\","+QString::number(int(m_players.at(i)->ruolo()))+");";
+                         + m_players.at(i)->cognome()+"\","+QString::number(int(m_players.at(i)->ruolo()))+");";
 
                 query2.exec(qryStr);
             }
-            else
-            {
+            else {
                 qryStr = QString("UPDATE roster SET ")
-                        + QString("name=\"")+m_players.at(i)->nome()+QString("\",")
-                        + QString("surname=\"")+m_players.at(i)->cognome()+QString("\",")
-                        + QString("role=")+QString::number(int(m_players.at(i)->ruolo()))
-                        + QString("WHERE name=\"")+m_players.at(i)->nome()+QString("\" and surname=\"")+m_players.at(i)->cognome()+QString("\";");
+                         + QString("name=\"")+m_players.at(i)->nome()+QString("\",")
+                         + QString("surname=\"")+m_players.at(i)->cognome()+QString("\",")
+                         + QString("role=")+QString::number(int(m_players.at(i)->ruolo()))
+                         + QString("WHERE name=\"")+m_players.at(i)->nome()+QString("\" and surname=\"")+m_players.at(i)->cognome()+QString("\";");
 
                 query2.exec(qryStr);
             }
@@ -1145,16 +878,14 @@ void MainWindow::fileSave()
     m_isModified = false;
 }
 
-void MainWindow::teamSorter(QList<Giocatore*>& players)
+void MainWindow::teamSorter(QList<Giocatore *> &players)
 {
-    for(int i=0; i<players.size()-1; ++i)
-    {
-        for(int j=i+1; j<players.size(); ++j)
-        {
+    for (int i=0; i<players.size()-1; ++i) {
+        for (int j=i+1; j<players.size(); ++j) {
             if ((players[i]->ruolo() > players[j]->ruolo()) ||
                     ((players[i]->nomeCompleto() > players[j]->nomeCompleto()) &&
                      (players[i]->ruolo() == players[j]->ruolo()))) {
-                Giocatore* temp = players[i];
+                Giocatore *temp = players[i];
                 players[i] = players[j];
                 players[j] = temp;
             }
@@ -1162,7 +893,7 @@ void MainWindow::teamSorter(QList<Giocatore*>& players)
     }
 }
 
-void MainWindow::setTeamLogo(QLabel* qLabel, int size, QByteArray image)
+void MainWindow::setTeamLogo(QLabel *qLabel, int size, QByteArray image)
 {
 //    QImage myImage;
 //    myImage.load(imageName);
@@ -1170,15 +901,15 @@ void MainWindow::setTeamLogo(QLabel* qLabel, int size, QByteArray image)
 //    qLabel->setPixmap(QPixmap::fromImage(myImage));
 
     QPixmap pixmap;
-    if (pixmap.loadFromData(image))
-    {
+
+    if (pixmap.loadFromData(image)) {
         pixmap = pixmap.scaled(size, size, Qt::KeepAspectRatio, Qt::FastTransformation);
     }
 
     qLabel->setPixmap(pixmap);
 }
 
-void MainWindow::screenResolution(int& theWidth, int& theHeight)
+void MainWindow::screenResolution(int &theWidth, int &theHeight)
 {
     QScreen *screen = QApplication::screens().at(0);
     theWidth = screen->availableSize().width();
@@ -1188,20 +919,23 @@ void MainWindow::screenResolution(int& theWidth, int& theHeight)
 void MainWindow::keyReleaseEvent(QKeyEvent *event)
 {
     QMainWindow::keyReleaseEvent(event);
-    if (event->key() == Qt::Key_Back)
-    {
+
+    if (event->key() == Qt::Key_Back) {
         event->accept();
 
-        if (m_ui.stackedWidget->currentIndex() == 0 or m_ui.stackedWidget->currentIndex() == 1)
+        if (m_ui.stackedWidget->currentIndex() == 0 or m_ui.stackedWidget->currentIndex() == 1) {
             qApp->quit();
-        else
+        }
+        else {
             emit stackTo(0);
+        }
     }
-    else if (event->key() == Qt::Key_Menu)
-    {
+    else if (event->key() == Qt::Key_Menu) {
         event->accept();
-        if (m_ui.stackedWidget->currentIndex() == 0)
+
+        if (m_ui.stackedWidget->currentIndex() == 0) {
             emit stackTo(5);
+        }
     }
 }
 
@@ -1226,22 +960,29 @@ void MainWindow::singlePlayerStat(QModelIndex index)
     qryStr += "FROM roster, playerStats WHERE fn=playerStats.name and playerStats.name=" + fullName + ";";
 
     query.exec(qryStr);
-    if (query.first())
-    {
+
+    if (query.first()) {
         int role = query.value(2).toInt();
         QString textToShow = "Giocate: " + query.value(3).toString() + "\n";
         textToShow += "Giocate: " + query.value(4).toString() + "\n";
         textToShow += "Ammonizioni: " + query.value(5).toString() + "\n";
         textToShow += "Esplusioni: " + query.value(6).toString() + "\n";
         textToShow += "Assist: " + query.value(14).toString() + "\n";
-        if (role != 10)
+
+        if (role != 10) {
             textToShow += "Goal: " + query.value(7).toString() + "\n";
-        else
+        }
+        else {
             textToShow += "Goal: " + query.value(8).toString() + "\n";
-        if (role != 10)
+        }
+
+        if (role != 10) {
             textToShow += "Rigori sbagliati: " + query.value(9).toString() + "\n";
-        else
+        }
+        else {
             textToShow += "Rigori parati: " + query.value(10).toString() + "\n";
+        }
+
         textToShow += "Autogoal: " + query.value(11).toString() + "\n";
         textToShow += "Media voto: " + query.value(12).toString() + "\n";
         textToShow += "Fantamedia: " + query.value(13).toString() + "\n";

@@ -3,19 +3,20 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QIODevice>
+#include <QDir>
 
 //#include <QDebug>
 
 DownloadManager::DownloadManager()
 {
     m_manager = new QNetworkAccessManager();
-    connect(m_manager, SIGNAL(finished(QNetworkReply*)), this, SLOT(downloadFinished(QNetworkReply*)));
+    connect(m_manager, SIGNAL(finished(QNetworkReply *)), this, SLOT(downloadFinished(QNetworkReply *)));
 }
 
 void DownloadManager::doDownload(const QUrl &url)
 {
     QNetworkRequest request(url);
-    QNetworkReply* reply = m_manager->get(request);
+    QNetworkReply *reply = m_manager->get(request);
 
     m_currentDownloads.append(reply);
 }
@@ -25,18 +26,9 @@ QString DownloadManager::saveFileName(const QUrl &url)
     QString path = url.path();
     QString basename = QFileInfo(path).fileName();
 
-    if (basename.isEmpty())
+    if (basename.isEmpty()) {
         basename = "download";
-
-//    if (QFile::exists(basename))
-//    {
-//        int i=0;
-//        basename += '.';
-//        while (QFile::exists(basename + QString::number(i)))
-//            ++i;
-
-//        basename += QString::number(i);
-//    }
+    }
 
     return basename;
 }
@@ -44,48 +36,80 @@ QString DownloadManager::saveFileName(const QUrl &url)
 bool DownloadManager::saveToDisk(const QString &filename, QIODevice *data)
 {
     QFile file(m_destination + filename);
-    if (!file.open(QIODevice::WriteOnly))
-    {
-        //qDebug() << "Couldn't open " << filename << " for writing " << file.errorString();
+
+    if (!file.open(QIODevice::WriteOnly)) {
+        qDebug() << "Couldn't open " << filename << " for writing " << file.errorString();
         return false;
     }
+    else {
 
-    file.write(data->readAll());
-    file.close();
+        file.write(data->readAll());
+        file.close();
 
-    return true;
+        return true;
+    }
 }
 
-void DownloadManager::execute(const QString& filename, const QString& destinationPath)
+void DownloadManager::execute(const QString &filename, const QString &destinationPath)
 {
     m_destination = destinationPath;
     QUrl url = QUrl::fromEncoded(filename.toLocal8Bit());
     doDownload(url);
 }
 
+QByteArray DownloadManager::computeHash(const QString &filename)
+{
+    QFile file(filename);
+
+    if (file.open(QFile::ReadOnly)) {
+        QCryptographicHash hash(HASH_ALGORITHM);
+        QByteArray data = file.readAll();
+        hash.addData(data);
+        return hash.result();
+    }
+    else {
+        //emit cannotOpenFile(filename);
+    }
+
+    return QByteArray();
+}
+
 void DownloadManager::downloadFinished(QNetworkReply *reply)
 {
     QUrl url = reply->url();
-    if (reply->error())
-    {
+
+    if (reply->error()) {
         //qDebug() << "Download of " << url.toEncoded().constData() << " failed: " << reply->errorString();
         emit downloadDone(false);
     }
-    else
-    {
+    else {
         QString filename = saveFileName(url);
-        if (saveToDisk(filename, reply))
-        {
-            //qDebug() << "Download of " << url.toEncoded().constData() << " succeded (saved to " << filename << ")";
-            emit downloadDone(true);
+
+        saveToDisk("temp.sqlite", reply);
+        QByteArray localHash = computeHash(m_destination + filename);
+        QByteArray remoteHash = computeHash(m_destination + "temp.sqlite");
+
+        if (remoteHash != localHash) {
+            QDir r;
+            bool check = r.rename(m_destination + "temp.sqlite", m_destination + filename);
+
+            if (check) {
+                //qDebug() << "Download of " << url.toEncoded().constData() << " succeded (saved to " << filename << ")";
+                emit downloadDone(true);
+            }
+            else {
+                // emit ....
+            }
+        }
+        else {
+            // emit sameHash();
         }
     }
 
     m_currentDownloads.removeAll(reply);
     reply->deleteLater();
 
-    if (m_currentDownloads.isEmpty())
-    {
+    if (m_currentDownloads.isEmpty()) {
         this->deleteLater();
     }
 }
@@ -99,8 +123,9 @@ bool DownloadManager::isConnectedToNetwork()
     for (int i = 0; i < ifaces.count(); i++) {
 
         QNetworkInterface iface = ifaces.at(i);
-        if ( iface.flags().testFlag(QNetworkInterface::IsUp)
-             && !iface.flags().testFlag(QNetworkInterface::IsLoopBack)) {
+
+        if (iface.flags().testFlag(QNetworkInterface::IsUp)
+                && !iface.flags().testFlag(QNetworkInterface::IsLoopBack)) {
 
 //            // details of connection
 //            qDebug() << "name:" << iface.name() << endl
@@ -112,8 +137,9 @@ bool DownloadManager::isConnectedToNetwork()
 //                         << " / " << iface.addressEntries().at(j).netmask().toString() << endl;
 
                 // got an interface which is up, and has an ip address
-                if (result == false)
+                if (result == false) {
                     result = true;
+                }
             }
         }
 

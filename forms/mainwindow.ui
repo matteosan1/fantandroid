@@ -853,7 +853,7 @@ QGroupBox#groupBox {backgorund-image: url(:/res/soccer-field2.jpg);}</string>
                   </property>
                   <property name="minimumSize">
                    <size>
-                    <width>100</width>
+                    <width>10</width>
                     <height>0</height>
                    </size>
                   </property>
@@ -1961,7 +1961,7 @@ QGroupBox#groupBox {backgorund-image: url(:/res/soccer-field2.jpg);}</string>
                 <item>
                  <layout class="QVBoxLayout" name="verticalLayout_4">
                   <item>
-                   <widget class="QComboBox" name="comboBoxPanchinariDifesa">
+                   <widget class="QComboBox" name="comboBoxPanchinari">
                     <property name="sizePolicy">
                      <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
                       <horstretch>0</horstretch>
@@ -1988,7 +1988,7 @@ QGroupBox#groupBox {backgorund-image: url(:/res/soccer-field2.jpg);}</string>
                    </widget>
                   </item>
                   <item>
-                   <widget class="QPushButton" name="pushButtonAggiungiDifensore">
+                   <widget class="QPushButton" name="pushButtonAggiungiPanchinaro">
                     <property name="sizePolicy">
                      <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
                       <horstretch>0</horstretch>
@@ -2002,14 +2002,14 @@ QGroupBox#groupBox {backgorund-image: url(:/res/soccer-field2.jpg);}</string>
                      </size>
                     </property>
                     <property name="text">
-                     <string>Difensore</string>
+                     <string>Aggiungi</string>
                     </property>
                    </widget>
                   </item>
                  </layout>
                 </item>
                 <item>
-                 <widget class="QListWidget" name="listPanchinariDifesa">
+                 <widget class="QListWidget" name="listPanchinari">
                   <property name="sizePolicy">
                    <sizepolicy hsizetype="MinimumExpanding" vsizetype="MinimumExpanding">
                     <horstretch>0</horstretch>
@@ -2019,7 +2019,7 @@ QGroupBox#groupBox {backgorund-image: url(:/res/soccer-field2.jpg);}</string>
                   <property name="minimumSize">
                    <size>
                     <width>200</width>
-                    <height>160</height>
+                    <height>300</height>
                    </size>
                   </property>
                   <property name="maximumSize">
@@ -2044,172 +2044,7 @@ QGroupBox#groupBox {backgorund-image: url(:/res/soccer-field2.jpg);}</string>
                </layout>
               </item>
               <item>
-               <layout class="QHBoxLayout" name="horizontalLayout_20">
-                <item>
-                 <layout class="QVBoxLayout" name="verticalLayout_10">
-                  <item>
-                   <widget class="QComboBox" name="comboBoxPanchinariCentrocampo">
-                    <property name="sizePolicy">
-                     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-                      <horstretch>0</horstretch>
-                      <verstretch>0</verstretch>
-                     </sizepolicy>
-                    </property>
-                    <property name="minimumSize">
-                     <size>
-                      <width>0</width>
-                      <height>80</height>
-                     </size>
-                    </property>
-                    <property name="maximumSize">
-                     <size>
-                      <width>350</width>
-                      <height>16777215</height>
-                     </size>
-                    </property>
-                    <property name="font">
-                     <font>
-                      <pointsize>14</pointsize>
-                     </font>
-                    </property>
-                   </widget>
-                  </item>
-                  <item>
-                   <widget class="QPushButton" name="pushButtonAggiungiCentrocampista">
-                    <property name="sizePolicy">
-                     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-                      <horstretch>0</horstretch>
-                      <verstretch>0</verstretch>
-                     </sizepolicy>
-                    </property>
-                    <property name="maximumSize">
-                     <size>
-                      <width>350</width>
-                      <height>16777215</height>
-                     </size>
-                    </property>
-                    <property name="text">
-                     <string>Centrocam.</string>
-                    </property>
-                   </widget>
-                  </item>
-                 </layout>
-                </item>
-                <item>
-                 <widget class="QListWidget" name="listPanchinariCentrocampo">
-                  <property name="sizePolicy">
-                   <sizepolicy hsizetype="MinimumExpanding" vsizetype="MinimumExpanding">
-                    <horstretch>0</horstretch>
-                    <verstretch>0</verstretch>
-                   </sizepolicy>
-                  </property>
-                  <property name="minimumSize">
-                   <size>
-                    <width>200</width>
-                    <height>160</height>
-                   </size>
-                  </property>
-                  <property name="maximumSize">
-                   <size>
-                    <width>400</width>
-                    <height>16777215</height>
-                   </size>
-                  </property>
-                  <property name="font">
-                   <font>
-                    <pointsize>14</pointsize>
-                   </font>
-                  </property>
-                  <property name="horizontalScrollBarPolicy">
-                   <enum>Qt::ScrollBarAlwaysOff</enum>
-                  </property>
-                 </widget>
-                </item>
-               </layout>
-              </item>
-              <item>
-               <layout class="QHBoxLayout" name="horizontalLayout_21">
-                <item>
-                 <layout class="QVBoxLayout" name="verticalLayout_11">
-                  <item>
-                   <widget class="QComboBox" name="comboBoxPanchinariAttacco">
-                    <property name="sizePolicy">
-                     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-                      <horstretch>0</horstretch>
-                      <verstretch>0</verstretch>
-                     </sizepolicy>
-                    </property>
-                    <property name="minimumSize">
-                     <size>
-                      <width>0</width>
-                      <height>80</height>
-                     </size>
-                    </property>
-                    <property name="maximumSize">
-                     <size>
-                      <width>350</width>
-                      <height>16777215</height>
-                     </size>
-                    </property>
-                    <property name="font">
-                     <font>
-                      <pointsize>14</pointsize>
-                     </font>
-                    </property>
-                   </widget>
-                  </item>
-                  <item>
-                   <widget class="QPushButton" name="pushButtonAggiungiAttaccante">
-                    <property name="sizePolicy">
-                     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-                      <horstretch>0</horstretch>
-                      <verstretch>0</verstretch>
-                     </sizepolicy>
-                    </property>
-                    <property name="maximumSize">
-                     <size>
-                      <width>350</width>
-                      <height>16777215</height>
-                     </size>
-                    </property>
-                    <property name="text">
-                     <string>Attaccante</string>
-                    </property>
-                   </widget>
-                  </item>
-                 </layout>
-                </item>
-                <item>
-                 <widget class="QListWidget" name="listPanchinariAttacco">
-                  <property name="sizePolicy">
-                   <sizepolicy hsizetype="MinimumExpanding" vsizetype="MinimumExpanding">
-                    <horstretch>0</horstretch>
-                    <verstretch>0</verstretch>
-                   </sizepolicy>
-                  </property>
-                  <property name="minimumSize">
-                   <size>
-                    <width>200</width>
-                    <height>160</height>
-                   </size>
-                  </property>
-                  <property name="maximumSize">
-                   <size>
-                    <width>400</width>
-                    <height>16777215</height>
-                   </size>
-                  </property>
-                  <property name="font">
-                   <font>
-                    <pointsize>14</pointsize>
-                   </font>
-                  </property>
-                  <property name="horizontalScrollBarPolicy">
-                   <enum>Qt::ScrollBarAlwaysOff</enum>
-                  </property>
-                 </widget>
-                </item>
-               </layout>
+               <layout class="QHBoxLayout" name="horizontalLayout_21"/>
               </item>
               <item>
                <spacer name="verticalSpacer_18">

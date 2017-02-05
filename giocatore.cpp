@@ -140,23 +140,19 @@ void Giocatore::setPartita(int giornata, int b, int *c, float v) {
 float Giocatore::GetVoto(int i, Punteggi* p) {
   
   float v = 0.0;
-  v += prestazioni[i].GetVoto();                                    // voto
-  v += (float)prestazioni[i].Autogoal() * (float)p->au;             // autogoal
-  v += (float)prestazioni[i].Sanzioni() * (float)p->am * 0.5;       // ammonizioni etc.
+  v += prestazioni[i].GetVoto();
+  v += (float)prestazioni[i].Autogoal() * p->autogoal();
+  v += (float)prestazioni[i].Sanzioni() * p->ammonizione();
   if (ruolo() == Portiere or ruolo() == PortiereFuoriRosa) {
-    v += (float)prestazioni[i].RigoriParati() * (float)p->rp;     // rigori parati
-    v += (float)prestazioni[i].GoalSubiti() * (float)p->gsu;      // goal subiti
+    v += (float)prestazioni[i].RigoriParati() * p->rigoreParato();
+    v += (float)prestazioni[i].GoalSubiti() * p->goalSubito();
     //v -= (float)(prestazioni[i].RigoriGetData(5) -
-    //	   prestazioni[i].GetData(4));                          // rigori non parati
+    //	   prestazioni[i].GetData(4));
   }
   else {
-    v += (float)prestazioni[i].GoalRigore() * (float)p->rse;      // rigori segnati
-    v += (float)prestazioni[i].Goal() * (float)p->gse;            // goal
-    // todo Nuova regola del +4 per i goal dei difensori
-//    if (ruolo() < 2)
-//      v += (float)prestazioni[i].Goal();
-
-    v += (float)prestazioni[i].RigoriSbagliati() * (float)p->rsb; // rigori sbagliati
+    v += (float)prestazioni[i].GoalRigore() * p->rigoreSegnato();
+    v += (float)prestazioni[i].Goal() * p->goalSegnato();
+    v += (float)prestazioni[i].RigoriSbagliati() * p->rigoreSbagliato();
   }
   
   return v;

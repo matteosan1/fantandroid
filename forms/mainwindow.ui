@@ -865,7 +865,7 @@ QGroupBox#groupBox {backgorund-image: url(:/res/soccer-field2.jpg);}</string>
                   </property>
                   <property name="font">
                    <font>
-                    <pointsize>8</pointsize>
+                    <pointsize>11</pointsize>
                    </font>
                   </property>
                   <property name="editable">
@@ -944,7 +944,7 @@ QGroupBox#groupBox {backgorund-image: url(:/res/soccer-field2.jpg);}</string>
                   </property>
                   <property name="font">
                    <font>
-                    <pointsize>8</pointsize>
+                    <pointsize>11</pointsize>
                    </font>
                   </property>
                   <property name="editable">
@@ -980,7 +980,7 @@ QGroupBox#groupBox {backgorund-image: url(:/res/soccer-field2.jpg);}</string>
                   </property>
                   <property name="font">
                    <font>
-                    <pointsize>8</pointsize>
+                    <pointsize>11</pointsize>
                    </font>
                   </property>
                   <property name="editable">
@@ -1033,7 +1033,7 @@ QGroupBox#groupBox {backgorund-image: url(:/res/soccer-field2.jpg);}</string>
                   </property>
                   <property name="font">
                    <font>
-                    <pointsize>8</pointsize>
+                    <pointsize>11</pointsize>
                    </font>
                   </property>
                   <property name="editable">
@@ -1082,7 +1082,7 @@ QGroupBox#groupBox {backgorund-image: url(:/res/soccer-field2.jpg);}</string>
                   </property>
                   <property name="font">
                    <font>
-                    <pointsize>8</pointsize>
+                    <pointsize>11</pointsize>
                    </font>
                   </property>
                   <property name="editable">
@@ -1135,7 +1135,7 @@ QGroupBox#groupBox {backgorund-image: url(:/res/soccer-field2.jpg);}</string>
                   </property>
                   <property name="font">
                    <font>
-                    <pointsize>8</pointsize>
+                    <pointsize>11</pointsize>
                    </font>
                   </property>
                   <property name="editable">
@@ -1214,7 +1214,7 @@ QGroupBox#groupBox {backgorund-image: url(:/res/soccer-field2.jpg);}</string>
                   </property>
                   <property name="font">
                    <font>
-                    <pointsize>8</pointsize>
+                    <pointsize>11</pointsize>
                    </font>
                   </property>
                   <property name="editable">
@@ -1250,7 +1250,7 @@ QGroupBox#groupBox {backgorund-image: url(:/res/soccer-field2.jpg);}</string>
                   </property>
                   <property name="font">
                    <font>
-                    <pointsize>8</pointsize>
+                    <pointsize>11</pointsize>
                    </font>
                   </property>
                   <property name="editable">
@@ -1303,7 +1303,7 @@ QGroupBox#groupBox {backgorund-image: url(:/res/soccer-field2.jpg);}</string>
                   </property>
                   <property name="font">
                    <font>
-                    <pointsize>8</pointsize>
+                    <pointsize>11</pointsize>
                    </font>
                   </property>
                   <property name="editable">
@@ -1352,7 +1352,7 @@ QGroupBox#groupBox {backgorund-image: url(:/res/soccer-field2.jpg);}</string>
                   </property>
                   <property name="font">
                    <font>
-                    <pointsize>8</pointsize>
+                    <pointsize>11</pointsize>
                    </font>
                   </property>
                   <property name="editable">
@@ -1405,7 +1405,7 @@ QGroupBox#groupBox {backgorund-image: url(:/res/soccer-field2.jpg);}</string>
                   </property>
                   <property name="font">
                    <font>
-                    <pointsize>8</pointsize>
+                    <pointsize>11</pointsize>
                    </font>
                   </property>
                   <property name="editable">
@@ -1481,7 +1481,7 @@ QGroupBox#groupBox {backgorund-image: url(:/res/soccer-field2.jpg);}</string>
                   </property>
                   <property name="font">
                    <font>
-                    <pointsize>8</pointsize>
+                    <pointsize>11</pointsize>
                    </font>
                   </property>
                  </widget>
@@ -1508,7 +1508,7 @@ QGroupBox#groupBox {backgorund-image: url(:/res/soccer-field2.jpg);}</string>
                   </property>
                   <property name="font">
                    <font>
-                    <pointsize>8</pointsize>
+                    <pointsize>11</pointsize>
                    </font>
                   </property>
                  </widget>
@@ -1565,7 +1565,7 @@ QGroupBox#groupBox {backgorund-image: url(:/res/soccer-field2.jpg);}</string>
                   </property>
                   <property name="font">
                    <font>
-                    <pointsize>8</pointsize>
+                    <pointsize>11</pointsize>
                    </font>
                   </property>
                  </widget>
@@ -1622,7 +1622,7 @@ QGroupBox#groupBox {backgorund-image: url(:/res/soccer-field2.jpg);}</string>
                   </property>
                   <property name="font">
                    <font>
-                    <pointsize>8</pointsize>
+                    <pointsize>11</pointsize>
                    </font>
                   </property>
                  </widget>
@@ -1649,7 +1649,7 @@ QGroupBox#groupBox {backgorund-image: url(:/res/soccer-field2.jpg);}</string>
                   </property>
                   <property name="font">
                    <font>
-                    <pointsize>8</pointsize>
+                    <pointsize>11</pointsize>
                    </font>
                   </property>
                  </widget>
@@ -1694,6 +1694,11 @@ QGroupBox#groupBox {backgorund-image: url(:/res/soccer-field2.jpg);}</string>
                     <height>16777215</height>
                    </size>
                   </property>
+                  <property name="font">
+                   <font>
+                    <pointsize>11</pointsize>
+                   </font>
+                  </property>
                   <property name="editable">
                    <bool>false</bool>
                   </property>
@@ -1737,6 +1742,11 @@ QGroupBox#groupBox {backgorund-image: url(:/res/soccer-field2.jpg);}</string>
                     <width>250</width>
                     <height>16777215</height>
                    </size>
+                  </property>
+                  <property name="font">
+                   <font>
+                    <pointsize>11</pointsize>
+                   </font>
                   </property>
                   <property name="editable">
                    <bool>false</bool>
@@ -1785,6 +1795,11 @@ QGroupBox#groupBox {backgorund-image: url(:/res/soccer-field2.jpg);}</string>
                     <width>250</width>
                     <height>16777215</height>
                    </size>
+                  </property>
+                  <property name="font">
+                   <font>
+                    <pointsize>11</pointsize>
+                   </font>
                   </property>
                   <property name="editable">
                    <bool>false</bool>

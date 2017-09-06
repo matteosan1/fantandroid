@@ -11,9 +11,12 @@
 #include <QScroller>
 #include <QScreen>
 #include <QKeyEvent>
+#include <QStandardPaths>
 
+#include <QSslSocket>
+
+#define LOCAL_DB
 //#define DEBUG
-#define DB_FILE      "https://dl.dropboxusercontent.com/s/0p5psz455zjaxb1/team.sqlite?dl=0"
 
 #ifdef Q_OS_ANDROID
 #include <QtAndroidExtras>
@@ -41,11 +44,20 @@ MainWindow::MainWindow(QWidget *parent)
     connect(m_downloadManager, SIGNAL(sameHash()), this, SLOT(sameHashMsg()));
     connect(m_downloadManager, SIGNAL(cannotOpenFile(QString)), this, SLOT(cannotOpenFileMsg(QString)));
 
-    if (!QDir(OUTPUT_DIR).exists()) {
-        if(!QDir().mkdir(OUTPUT_DIR)) {
-            QMessageBox::critical(this, "Dir", "Cannot create databases dir.", QMessageBox::Ok);
-        }
+#ifdef LOCAL_DB
+    QFile dfile("assets:/team.sqlite");
+    QString filePath = QStandardPaths::writableLocation(QStandardPaths::StandardLocation::AppLocalDataLocation);
+    filePath.append("/team.sqlite");
+    if (dfile.exists()) {
+        if (QFile::exists(filePath))
+            QFile::remove(filePath);
+        if (dfile.copy(filePath))
+            QFile::setPermissions(filePath, QFile::WriteOwner | QFile::ReadOwner);
     }
+    else {
+        QMessageBox::critical(this, "Dir", "Cannot copy databases to its dir.", QMessageBox::Ok);
+    }
+#endif
 
     m_ui.setupUi(this);
     screenResolution(m_screenWidth, m_screenHeight);
@@ -83,9 +95,12 @@ MainWindow::~MainWindow()
 
 void MainWindow::checkVersion()
 {
+
+#ifndef LOCAL_DB
     if (m_downloadManager->isConnectedToNetwork()) {
-        m_downloadManager->execute(DB_FILE, OUTPUT_DIR);
+        m_downloadManager->execute(REMOTE_DB_FILENAME, OUTPUT_DIR);
     }
+#endif
 
     initializeApp();
 }
@@ -98,6 +113,7 @@ QList<Giocatore *> MainWindow::giocatori()
 
 void MainWindow::configDownload(bool exitCode)
 {
+    QMessageBox::information(this, "Openssl support", QString("%1").arg(QSslSocket::supportsSsl()), QMessageBox::Ok);
     // download failed !
     if (!exitCode) {
         QMessageBox::warning(this, "Connessione fallita", "Impossibile scaricare gli aggiornamenti",  QMessageBox::Cancel);
@@ -118,7 +134,10 @@ void MainWindow::initializeApp()
 
 bool MainWindow::openDB()
 {
-    QString filename = QString(OUTPUT_DIR)+ QString("team.sqlite");
+
+    //QString filename = QString(OUTPUT_DIR)+ QString(DB_FILENAME);
+    QString filename = QStandardPaths::writableLocation(QStandardPaths::StandardLocation::AppLocalDataLocation);
+    filename.append("/team.sqlite");
     QFile file(filename);
 
     if (file.exists()) {
@@ -156,7 +175,7 @@ void MainWindow::chooseYourTeam(bool overwrite)
             //m_sqlModel->setFilter("phone='"+phonenumber+"';");
             //if (m_sqlModel->select())
 
-            qryStr = QString("SELECT name from teamName WHERE phone=\""+phoneNumber+"\";");
+            qryStr = QString("SELECT name from teamName WHERE phone=\"" + phoneNumber + "\" or secondphone=\"" + phoneNumber + "\";");
 
             query.exec(qryStr);
 
@@ -502,7 +521,6 @@ void MainWindow::sendLineup()
 #else
     finalizeMessage();
 #endif
-
 }
 
 void MainWindow::playerSelected(QString player)

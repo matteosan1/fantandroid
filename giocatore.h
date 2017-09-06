@@ -63,7 +63,8 @@ public:
         if (m_nome == " ")
             return m_cognome.toUpper();
         else
-            return cognome()+QString(" ")+nome().left(1)+QString(".");
+            //return cognome()+QString(" ")+nome().left(1)+QString(".");
+            return cognome();
     };
 
     float GetMedia(Punteggi* p);

@@ -14,12 +14,14 @@
 
 #include "giocatore.h"
 
-#define EMPTY_PLAYER "-------------"
+#define EMPTY_PLAYER       "-------------"
+#define DB_FILENAME        "team.sqlite"
+#define REMOTE_DB_FILENAME "https://dl.dropboxusercontent.com/s/0p5psz455zjaxb1/team.sqlite?dl=0"
 
 #ifdef Q_OS_ANDROID
 #define OUTPUT_DIR "/data/data/org.qtproject.fantandroid/databases/"
 #else
-#define OUTPUT_DIR "/home/sani/"
+#define OUTPUT_DIR "/Users/sani/da_copiare/databases/"
 #endif
 
 class Punteggi;
@@ -98,6 +100,7 @@ private:
 
     Ui::MainWindowTemp m_ui;
 
+    QString                m_fileName;
     QString                m_teamLabel;
     QByteArray             m_teamImage;
     bool                   m_isModified;

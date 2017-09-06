@@ -1,6 +1,11 @@
 <RCC>
     <qresource prefix="/">
-        <file>res/photo.jpg</file>
         <file>res/soccer-field2.jpg</file>
+        <file>res/photo.jpg</file>
+        <file>res/icon.png</file>
+        <file>res/icon.jpg</file>
+        <file>res/photo_large.png</file>
+        <file>res/photo_small.png</file>
+        <file>res/soccer-field.jpg</file>
     </qresource>
 </RCC>

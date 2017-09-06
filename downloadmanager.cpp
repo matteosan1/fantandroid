@@ -79,10 +79,12 @@ void DownloadManager::downloadFinished(QNetworkReply *reply)
     QUrl url = reply->url();
 
     if (reply->error()) {
-        //qDebug() << "Download of " << url.toEncoded().constData() << " failed: " << reply->errorString();
+        qDebug() << "Download of " << url.toEncoded().constData() << " failed: " << reply->errorString();
+
         emit downloadDone(false);
     }
-    else {
+    else
+    {
         QString filename = saveFileName(url);
 
         saveToDisk("temp.sqlite", reply);
@@ -94,7 +96,7 @@ void DownloadManager::downloadFinished(QNetworkReply *reply)
             bool check = r.rename(m_destination + "temp.sqlite", m_destination + filename);
 
             if (check) {
-                //qDebug() << "Download of " << url.toEncoded().constData() << " succeded (saved to " << filename << ")";
+                qDebug() << "Download of " << url.toEncoded().constData() << " succeded (saved to " << filename << ")";
                 emit downloadDone(true);
             }
             else {

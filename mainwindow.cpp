@@ -15,7 +15,7 @@
 
 #include <QSslSocket>
 
-#define LOCAL_DB
+//#define LOCAL_DB
 //#define DEBUG
 
 #ifdef Q_OS_ANDROID
@@ -98,11 +98,16 @@ void MainWindow::checkVersion()
 
 #ifndef LOCAL_DB
     if (m_downloadManager->isConnectedToNetwork()) {
-        m_downloadManager->execute(REMOTE_DB_FILENAME, OUTPUT_DIR);
-    }
-#endif
+        QMessageBox::warning(this, "DB issue", "Download about to start.", QMessageBox::Ok);
 
+        m_downloadManager->execute(REMOTE_DB_FILENAME, QStandardPaths::writableLocation(QStandardPaths::StandardLocation::AppLocalDataLocation));
+    }
+    else {
+        QMessageBox::warning(this, "DB issue", "You must be connected to the network to update the DB.", QMessageBox::Ok);
+    }
+#else
     initializeApp();
+#endif
 }
 
 QList<Giocatore *> MainWindow::giocatori()
@@ -134,10 +139,9 @@ void MainWindow::initializeApp()
 
 bool MainWindow::openDB()
 {
-
-    //QString filename = QString(OUTPUT_DIR)+ QString(DB_FILENAME);
     QString filename = QStandardPaths::writableLocation(QStandardPaths::StandardLocation::AppLocalDataLocation);
     filename.append("/team.sqlite");
+
     QFile file(filename);
 
     if (file.exists()) {

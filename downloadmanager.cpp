@@ -1,5 +1,7 @@
 #include "downloadmanager.h"
 
+#include <QMainWindow>
+
 #include <QFile>
 #include <QFileInfo>
 #include <QIODevice>
@@ -38,7 +40,6 @@ bool DownloadManager::saveToDisk(const QString &filename, QIODevice *data)
     QFile file(m_destination + filename);
 
     if (!file.open(QIODevice::WriteOnly)) {
-        qDebug() << "Couldn't open " << filename << " for writing " << file.errorString();
         return false;
     }
     else {
@@ -65,6 +66,7 @@ QByteArray DownloadManager::computeHash(const QString &filename)
         QCryptographicHash hash(HASH_ALGORITHM);
         QByteArray data = file.readAll();
         hash.addData(data);
+
         return hash.result();
     }
     else {
@@ -76,31 +78,33 @@ QByteArray DownloadManager::computeHash(const QString &filename)
 
 void DownloadManager::downloadFinished(QNetworkReply *reply)
 {
+
     QUrl url = reply->url();
 
     if (reply->error()) {
-        qDebug() << "Download of " << url.toEncoded().constData() << " failed: " << reply->errorString();
-
         emit downloadDone(false);
     }
     else
     {
         QString filename = saveFileName(url);
 
-        saveToDisk("temp.sqlite", reply);
-        QByteArray localHash = computeHash(m_destination + filename);
-        QByteArray remoteHash = computeHash(m_destination + "temp.sqlite");
+        saveToDisk("/temp.sqlite", reply);
+        QByteArray localHash = computeHash(m_destination + "/" + filename);
+        QByteArray remoteHash = computeHash(m_destination + "/temp.sqlite");
 
         if (remoteHash != localHash) {
-            QDir r;
-            bool check = r.rename(m_destination + "temp.sqlite", m_destination + filename);
-
-            if (check) {
-                qDebug() << "Download of " << url.toEncoded().constData() << " succeded (saved to " << filename << ")";
-                emit downloadDone(true);
+            QFile dfile(m_destination + "/temp.sqlite");
+            QString filePath = m_destination + "/team.sqlite";
+            if (dfile.exists()) {
+                if (QFile::exists(filePath)) {
+                    QFile::remove(filePath);
+                }
+                if (dfile.copy(filePath)) {
+                    QFile::setPermissions(filePath, QFile::WriteOwner | QFile::ReadOwner);
+                    emit downloadDone(true);
+                }
             }
             else {
-                // emit ....
             }
         }
         else {

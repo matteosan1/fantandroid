@@ -19,7 +19,7 @@
 #define REMOTE_DB_FILENAME "https://dl.dropboxusercontent.com/s/0p5psz455zjaxb1/team.sqlite?dl=0"
 
 #ifdef Q_OS_ANDROID
-#define OUTPUT_DIR "/data/data/org.qtproject.fantandroid/databases/"
+//#define OUTPUT_DIR "/data/data/org.qtproject.fantandroid/databases/"
 #else
 #define OUTPUT_DIR "/Users/sani/da_copiare/databases/"
 #endif

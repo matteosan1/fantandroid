@@ -98,8 +98,6 @@ void MainWindow::checkVersion()
 
 #ifndef LOCAL_DB
     if (m_downloadManager->isConnectedToNetwork()) {
-        QMessageBox::warning(this, "DB issue", "Download about to start.", QMessageBox::Ok);
-
         m_downloadManager->execute(REMOTE_DB_FILENAME, QStandardPaths::writableLocation(QStandardPaths::StandardLocation::AppLocalDataLocation));
     }
     else {

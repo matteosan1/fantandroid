@@ -16,7 +16,7 @@
 #include <QSslSocket>
 
 //#define LOCAL_DB
-//#define DEBUG
+#define DEBUG
 
 #ifdef Q_OS_ANDROID
 #include <QtAndroidExtras>
@@ -73,7 +73,8 @@ MainWindow::MainWindow(QWidget *parent)
 
 void MainWindow::sameHashMsg()
 {
-    QMessageBox::information(this, "Same Hash", "Local and remote DB have the same hash", QMessageBox::Ok);
+    //QMessageBox::information(this, "Same Hash", "Local and remote DB have the same hash", QMessageBox::Ok);
+    initializeApp();
 }
 
 void MainWindow::cannotOpenFileMsg(QString filename)
@@ -97,12 +98,19 @@ void MainWindow::checkVersion()
 {
 
 #ifndef LOCAL_DB
-    if (m_downloadManager->isConnectedToNetwork()) {
-        QMessageBox::warning(this, "DB issue", "Download about to start.", QMessageBox::Ok);
 
-        m_downloadManager->execute(REMOTE_DB_FILENAME, QStandardPaths::writableLocation(QStandardPaths::StandardLocation::AppLocalDataLocation));
+    if (m_downloadManager->isConnectedToNetwork()) {
+        //QMessageBox::warning(this, "DB issue", "Download about to start.", QMessageBox::Ok);
+
+#ifdef Q_OS_ANDROID
+        QString destination = QStandardPaths::writableLocation(QStandardPaths::StandardLocation::AppLocalDataLocation);
+#else
+        QString destination = OUTPUT_DIR;
+#endif
+        m_downloadManager->execute(REMOTE_DB_FILENAME, destination);
     }
-    else {
+    else
+    {
         QMessageBox::warning(this, "DB issue", "You must be connected to the network to update the DB.", QMessageBox::Ok);
     }
 #else
@@ -118,16 +126,14 @@ QList<Giocatore *> MainWindow::giocatori()
 
 void MainWindow::configDownload(bool exitCode)
 {
-    QMessageBox::information(this, "Openssl support", QString("%1").arg(QSslSocket::supportsSsl()), QMessageBox::Ok);
     // download failed !
     if (!exitCode) {
         QMessageBox::warning(this, "Connessione fallita", "Impossibile scaricare gli aggiornamenti",  QMessageBox::Cancel);
     }
-    else {
-        QMessageBox::information(this, "Aggiornamento DB", "Aggiornamento completato !",  QMessageBox::Ok);
-        //m_sqlModel = new QSqlTableModel(this, *m_db);
-        initializeApp();
-    }
+//    else {
+//        QMessageBox::information(this, "Aggiornamento DB", "Aggiornamento completato !",  QMessageBox::Ok);
+//    }
+    initializeApp();
 }
 
 void MainWindow::initializeApp()
@@ -139,7 +145,12 @@ void MainWindow::initializeApp()
 
 bool MainWindow::openDB()
 {
+
+#ifdef Q_OS_ANDROID
     QString filename = QStandardPaths::writableLocation(QStandardPaths::StandardLocation::AppLocalDataLocation);
+#else
+    QString filename = OUTPUT_DIR;
+#endif
     filename.append("/team.sqlite");
 
     QFile file(filename);

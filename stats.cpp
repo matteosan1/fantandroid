@@ -65,7 +65,9 @@ void Stats::fillTopScorerRanking()
 
         // todo better format and add scored penalties
 
-        QString qryStr = "SELECT playerStats.name,surname,sum(scored) AS sscored FROM playerStats,roster where playerStats.name=roster.surname||' '||substr(roster.name,1,1)||'.' GROUP BY playerStats.name ORDER BY sscored DESC;";
+        // FIXME
+        //QString qryStr = "SELECT playerStats.name,surname,sum(scored) AS sscored FROM playerStats,roster where playerStats.name=roster.surname||' '||substr(roster.name,1,1)||'.' GROUP BY playerStats.name ORDER BY sscored DESC;";
+        QString qryStr = "SELECT playerStats.name,surname,sum(scored) AS sscored FROM playerStats,roster where playerStats.name=roster.surname GROUP BY playerStats.name ORDER BY sscored DESC;";
         QSqlQuery query(*m_db);
         if (!query.exec(qryStr))
             qDebug() << query.lastError().text();
@@ -79,8 +81,9 @@ void Stats::fillTopScorerRanking()
             if (query.value(2).toInt() == 0)
                 break;
 
-            m_tableTopScorer->setItem(i, 0, new QTableWidgetItem(query.value(1).toString() + " " +
-                                                                 query.value(0).toString().left(1) + "."));
+            //m_tableTopScorer->setItem(i, 0, new QTableWidgetItem(query.value(1).toString() + " " +
+            //                                                     query.value(0).toString().left(1) + "."));
+            m_tableTopScorer->setItem(i, 0, new QTableWidgetItem(query.value(1).toString()));
             m_tableTopScorer->setItem(i, 1, new QTableWidgetItem(query.value(2).toString()));
 
             i++;
@@ -106,7 +109,7 @@ void Stats::fillTopFlop()
 
         int index = 0;
         m_tableTopWeek->setColumnWidth(0, 200);
-        qryStr = "SELECT roster.surname||' '||substr(roster.name,1,1)||'.' AS fn, finalVote AS v FROM roster, playerStats WHERE fn=playerStats.name AND round=" + QString::number(round) + " ORDER BY v DESC, fn ASC;";
+        qryStr = "SELECT roster.surname AS fn, finalVote AS v FROM roster, playerStats WHERE fn=playerStats.name AND round=" + QString::number(round) + " ORDER BY v DESC, fn ASC;";
         query.exec(qryStr);
 
         while (query.next())
@@ -123,7 +126,7 @@ void Stats::fillTopFlop()
 
         index = 0;
         m_tableFlopWeek->setColumnWidth(0, 200);
-        qryStr = "SELECT roster.surname||' '||substr(roster.name,1,1)||'.' AS fn, finalVote AS v FROM roster, playerStats WHERE fn=playerStats.name AND vote <> 0 AND round=" + QString::number(round) + " ORDER BY v ASC, fn ASC;";
+        qryStr = "SELECT roster.surname AS fn, finalVote AS v FROM roster, playerStats WHERE fn=playerStats.name AND vote <> 0 AND round=" + QString::number(round) + " ORDER BY v ASC, fn ASC;";
         if (!query.exec(qryStr))
             qDebug() << query.lastError().text();
 
@@ -139,7 +142,7 @@ void Stats::fillTopFlop()
         }
         m_tableFlopWeek->horizontalHeader()->setStretchLastSection(true);
 
-        qryStr = "SELECT roster.name, roster.surname, roster.surname||' '||substr(roster.name,1,1)||'.' AS fn, AVG(finalVote) as average, roster.role AS v FROM roster, playerStats WHERE fn=playerStats.name GROUP BY fn;";
+        qryStr = "SELECT roster.name, roster.surname, roster.surname AS fn, AVG(finalVote) as average, roster.role AS v FROM roster, playerStats WHERE fn=playerStats.name GROUP BY fn;";
         if (!query.exec(qryStr))
             qDebug() << query.lastError().text();
 

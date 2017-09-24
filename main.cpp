@@ -70,7 +70,7 @@ int main(int argc, char *argv[])
     QPixmap pixmap(":/res/photo.jpg"); //Insert your splash page image here
     QSplashScreen splash(pixmap);
     splash.show();
-    splash.showMessage(QObject::tr("fantandroid v1.3.2"),
+    splash.showMessage(QObject::tr("fantandroid v1.3.2.1"),
                        Qt::AlignLeft | Qt::AlignTop, Qt::white);
     MainWindow w;
     w.setWindowTitle("fantandroid");

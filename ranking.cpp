@@ -276,8 +276,9 @@ void Ranking::reportResults()
     QString round = "Risultati giornata " + QString::number(m_round);
     m_label->setText(round);
 
-    m_tableScores->setRowCount(query.size());
+    m_tableScores->setRowCount(4);//query.size());
     int i = 0;
+
     while(query.next())
     {
         QString team1 = Team::reducedName(query.value("team1").toString());

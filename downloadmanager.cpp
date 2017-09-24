@@ -7,7 +7,7 @@
 #include <QIODevice>
 #include <QDir>
 
-//#include <QDebug>
+#include <QDebug>
 
 DownloadManager::DownloadManager()
 {
@@ -43,7 +43,6 @@ bool DownloadManager::saveToDisk(const QString &filename, QIODevice *data)
         return false;
     }
     else {
-
         file.write(data->readAll());
         file.close();
 
@@ -70,7 +69,7 @@ QByteArray DownloadManager::computeHash(const QString &filename)
         return hash.result();
     }
     else {
-        //emit cannotOpenFile(filename);
+        emit cannotOpenFile(filename);
     }
 
     return QByteArray();
@@ -78,7 +77,6 @@ QByteArray DownloadManager::computeHash(const QString &filename)
 
 void DownloadManager::downloadFinished(QNetworkReply *reply)
 {
-
     QUrl url = reply->url();
 
     if (reply->error()) {
@@ -108,7 +106,7 @@ void DownloadManager::downloadFinished(QNetworkReply *reply)
             }
         }
         else {
-            // emit sameHash();
+            emit sameHash();
         }
     }
 

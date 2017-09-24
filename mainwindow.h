@@ -21,7 +21,7 @@
 #ifdef Q_OS_ANDROID
 //#define OUTPUT_DIR "/data/data/org.qtproject.fantandroid/databases/"
 #else
-#define OUTPUT_DIR "/Users/sani/da_copiare/databases/"
+#define OUTPUT_DIR "/Users/sani/testSqlModel"
 #endif
 
 class Punteggi;

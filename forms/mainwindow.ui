@@ -865,7 +865,7 @@ QGroupBox#groupBox {backgorund-image: url(:/res/soccer-field2.jpg);}</string>
                   </property>
                   <property name="font">
                    <font>
-                    <pointsize>11</pointsize>
+                    <pointsize>14</pointsize>
                    </font>
                   </property>
                   <property name="editable">
@@ -944,7 +944,7 @@ QGroupBox#groupBox {backgorund-image: url(:/res/soccer-field2.jpg);}</string>
                   </property>
                   <property name="font">
                    <font>
-                    <pointsize>11</pointsize>
+                    <pointsize>14</pointsize>
                    </font>
                   </property>
                   <property name="editable">
@@ -980,7 +980,7 @@ QGroupBox#groupBox {backgorund-image: url(:/res/soccer-field2.jpg);}</string>
                   </property>
                   <property name="font">
                    <font>
-                    <pointsize>11</pointsize>
+                    <pointsize>14</pointsize>
                    </font>
                   </property>
                   <property name="editable">
@@ -1033,7 +1033,7 @@ QGroupBox#groupBox {backgorund-image: url(:/res/soccer-field2.jpg);}</string>
                   </property>
                   <property name="font">
                    <font>
-                    <pointsize>11</pointsize>
+                    <pointsize>14</pointsize>
                    </font>
                   </property>
                   <property name="editable">
@@ -1082,7 +1082,7 @@ QGroupBox#groupBox {backgorund-image: url(:/res/soccer-field2.jpg);}</string>
                   </property>
                   <property name="font">
                    <font>
-                    <pointsize>11</pointsize>
+                    <pointsize>14</pointsize>
                    </font>
                   </property>
                   <property name="editable">
@@ -1135,7 +1135,7 @@ QGroupBox#groupBox {backgorund-image: url(:/res/soccer-field2.jpg);}</string>
                   </property>
                   <property name="font">
                    <font>
-                    <pointsize>11</pointsize>
+                    <pointsize>14</pointsize>
                    </font>
                   </property>
                   <property name="editable">
@@ -1214,7 +1214,7 @@ QGroupBox#groupBox {backgorund-image: url(:/res/soccer-field2.jpg);}</string>
                   </property>
                   <property name="font">
                    <font>
-                    <pointsize>11</pointsize>
+                    <pointsize>14</pointsize>
                    </font>
                   </property>
                   <property name="editable">
@@ -1250,7 +1250,7 @@ QGroupBox#groupBox {backgorund-image: url(:/res/soccer-field2.jpg);}</string>
                   </property>
                   <property name="font">
                    <font>
-                    <pointsize>11</pointsize>
+                    <pointsize>14</pointsize>
                    </font>
                   </property>
                   <property name="editable">
@@ -1303,7 +1303,7 @@ QGroupBox#groupBox {backgorund-image: url(:/res/soccer-field2.jpg);}</string>
                   </property>
                   <property name="font">
                    <font>
-                    <pointsize>11</pointsize>
+                    <pointsize>14</pointsize>
                    </font>
                   </property>
                   <property name="editable">
@@ -1352,7 +1352,7 @@ QGroupBox#groupBox {backgorund-image: url(:/res/soccer-field2.jpg);}</string>
                   </property>
                   <property name="font">
                    <font>
-                    <pointsize>11</pointsize>
+                    <pointsize>14</pointsize>
                    </font>
                   </property>
                   <property name="editable">
@@ -1405,7 +1405,7 @@ QGroupBox#groupBox {backgorund-image: url(:/res/soccer-field2.jpg);}</string>
                   </property>
                   <property name="font">
                    <font>
-                    <pointsize>11</pointsize>
+                    <pointsize>14</pointsize>
                    </font>
                   </property>
                   <property name="editable">
@@ -1481,7 +1481,7 @@ QGroupBox#groupBox {backgorund-image: url(:/res/soccer-field2.jpg);}</string>
                   </property>
                   <property name="font">
                    <font>
-                    <pointsize>11</pointsize>
+                    <pointsize>14</pointsize>
                    </font>
                   </property>
                  </widget>
@@ -1508,7 +1508,7 @@ QGroupBox#groupBox {backgorund-image: url(:/res/soccer-field2.jpg);}</string>
                   </property>
                   <property name="font">
                    <font>
-                    <pointsize>11</pointsize>
+                    <pointsize>14</pointsize>
                    </font>
                   </property>
                  </widget>
@@ -1565,7 +1565,7 @@ QGroupBox#groupBox {backgorund-image: url(:/res/soccer-field2.jpg);}</string>
                   </property>
                   <property name="font">
                    <font>
-                    <pointsize>11</pointsize>
+                    <pointsize>14</pointsize>
                    </font>
                   </property>
                  </widget>
@@ -1622,7 +1622,7 @@ QGroupBox#groupBox {backgorund-image: url(:/res/soccer-field2.jpg);}</string>
                   </property>
                   <property name="font">
                    <font>
-                    <pointsize>11</pointsize>
+                    <pointsize>14</pointsize>
                    </font>
                   </property>
                  </widget>
@@ -1649,7 +1649,7 @@ QGroupBox#groupBox {backgorund-image: url(:/res/soccer-field2.jpg);}</string>
                   </property>
                   <property name="font">
                    <font>
-                    <pointsize>11</pointsize>
+                    <pointsize>14</pointsize>
                    </font>
                   </property>
                  </widget>
@@ -1696,7 +1696,7 @@ QGroupBox#groupBox {backgorund-image: url(:/res/soccer-field2.jpg);}</string>
                   </property>
                   <property name="font">
                    <font>
-                    <pointsize>11</pointsize>
+                    <pointsize>14</pointsize>
                    </font>
                   </property>
                   <property name="editable">
@@ -1745,7 +1745,7 @@ QGroupBox#groupBox {backgorund-image: url(:/res/soccer-field2.jpg);}</string>
                   </property>
                   <property name="font">
                    <font>
-                    <pointsize>11</pointsize>
+                    <pointsize>14</pointsize>
                    </font>
                   </property>
                   <property name="editable">
@@ -1798,7 +1798,7 @@ QGroupBox#groupBox {backgorund-image: url(:/res/soccer-field2.jpg);}</string>
                   </property>
                   <property name="font">
                    <font>
-                    <pointsize>11</pointsize>
+                    <pointsize>14</pointsize>
                    </font>
                   </property>
                   <property name="editable">
@@ -2267,7 +2267,7 @@ QGroupBox#groupBox {backgorund-image: url(:/res/soccer-field2.jpg);}</string>
               </property>
               <property name="minimumSize">
                <size>
-                <width>200</width>
+                <width>300</width>
                 <height>0</height>
                </size>
               </property>
@@ -2376,7 +2376,7 @@ QGroupBox#groupBox {backgorund-image: url(:/res/soccer-field2.jpg);}</string>
                 </property>
                 <property name="minimumSize">
                  <size>
-                  <width>700</width>
+                  <width>800</width>
                   <height>0</height>
                  </size>
                 </property>
@@ -2464,7 +2464,7 @@ QGroupBox#groupBox {backgorund-image: url(:/res/soccer-field2.jpg);}</string>
            <string notr="true"/>
           </property>
           <property name="currentIndex">
-           <number>1</number>
+           <number>0</number>
           </property>
           <widget class="QWidget" name="tabStat">
            <attribute name="title">
@@ -2487,12 +2487,9 @@ QGroupBox#groupBox {backgorund-image: url(:/res/soccer-field2.jpg);}</string>
              </widget>
             </item>
             <item row="1" column="0">
-             <widget class="QTableWidget" name="tableWidgetTopScorer">
-              <property name="editTriggers">
-               <set>QAbstractItemView::NoEditTriggers</set>
-              </property>
-              <property name="showGrid">
-               <bool>true</bool>
+             <widget class="QTextEdit" name="textEditTopScorer">
+              <property name="textInteractionFlags">
+               <set>Qt::NoTextInteraction</set>
               </property>
              </widget>
             </item>
@@ -2503,73 +2500,6 @@ QGroupBox#groupBox {backgorund-image: url(:/res/soccer-field2.jpg);}</string>
             <string>Top - Flop</string>
            </attribute>
            <layout class="QGridLayout" name="gridLayout_11">
-            <item row="2" column="0">
-             <widget class="QLabel" name="label_3">
-              <property name="text">
-               <string>Flop della settimana</string>
-              </property>
-             </widget>
-            </item>
-            <item row="5" column="0">
-             <widget class="QLabel" name="labelTopFlop">
-              <property name="text">
-               <string>TOP Campionato</string>
-              </property>
-             </widget>
-            </item>
-            <item row="1" column="0">
-             <widget class="QTableWidget" name="tableWidgetTopWeek">
-              <property name="sizePolicy">
-               <sizepolicy hsizetype="MinimumExpanding" vsizetype="Maximum">
-                <horstretch>0</horstretch>
-                <verstretch>0</verstretch>
-               </sizepolicy>
-              </property>
-              <property name="minimumSize">
-               <size>
-                <width>0</width>
-                <height>100</height>
-               </size>
-              </property>
-              <property name="verticalScrollBarPolicy">
-               <enum>Qt::ScrollBarAlwaysOff</enum>
-              </property>
-              <property name="horizontalScrollBarPolicy">
-               <enum>Qt::ScrollBarAlwaysOff</enum>
-              </property>
-              <property name="editTriggers">
-               <set>QAbstractItemView::NoEditTriggers</set>
-              </property>
-              <property name="showGrid">
-               <bool>true</bool>
-              </property>
-             </widget>
-            </item>
-            <item row="6" column="0">
-             <widget class="QTableWidget" name="tableWidgetTopOverall">
-              <property name="sizePolicy">
-               <sizepolicy hsizetype="MinimumExpanding" vsizetype="MinimumExpanding">
-                <horstretch>0</horstretch>
-                <verstretch>0</verstretch>
-               </sizepolicy>
-              </property>
-              <property name="minimumSize">
-               <size>
-                <width>0</width>
-                <height>1000</height>
-               </size>
-              </property>
-              <property name="horizontalScrollBarPolicy">
-               <enum>Qt::ScrollBarAlwaysOff</enum>
-              </property>
-              <property name="editTriggers">
-               <set>QAbstractItemView::NoEditTriggers</set>
-              </property>
-              <property name="showGrid">
-               <bool>true</bool>
-              </property>
-             </widget>
-            </item>
             <item row="0" column="0">
              <widget class="QLabel" name="label_2">
               <property name="text">
@@ -2577,8 +2507,8 @@ QGroupBox#groupBox {backgorund-image: url(:/res/soccer-field2.jpg);}</string>
               </property>
              </widget>
             </item>
-            <item row="3" column="0">
-             <widget class="QTableWidget" name="tableWidgetFlopWeek">
+            <item row="1" column="0">
+             <widget class="QTextEdit" name="textEditTopWeek">
               <property name="sizePolicy">
                <sizepolicy hsizetype="MinimumExpanding" vsizetype="Maximum">
                 <horstretch>0</horstretch>
@@ -2591,32 +2521,83 @@ QGroupBox#groupBox {backgorund-image: url(:/res/soccer-field2.jpg);}</string>
                 <height>100</height>
                </size>
               </property>
-              <property name="verticalScrollBarPolicy">
-               <enum>Qt::ScrollBarAlwaysOff</enum>
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>350</height>
+               </size>
               </property>
-              <property name="horizontalScrollBarPolicy">
-               <enum>Qt::ScrollBarAlwaysOff</enum>
+              <property name="sizeAdjustPolicy">
+               <enum>QAbstractScrollArea::AdjustToContentsOnFirstShow</enum>
               </property>
-              <property name="editTriggers">
-               <set>QAbstractItemView::NoEditTriggers</set>
+              <property name="textInteractionFlags">
+               <set>Qt::NoTextInteraction</set>
               </property>
-              <property name="showGrid">
-               <bool>true</bool>
+             </widget>
+            </item>
+            <item row="2" column="0">
+             <widget class="QLabel" name="label_3">
+              <property name="text">
+               <string>Flop della settimana</string>
               </property>
              </widget>
             </item>
             <item row="4" column="0">
-             <spacer name="verticalSpacer_6">
-              <property name="orientation">
-               <enum>Qt::Vertical</enum>
+             <widget class="QLabel" name="labelTopFlop">
+              <property name="text">
+               <string>TOP Campionato</string>
               </property>
-              <property name="sizeHint" stdset="0">
+             </widget>
+            </item>
+            <item row="5" column="0">
+             <widget class="QTextEdit" name="textEditTopOverall">
+              <property name="minimumSize">
                <size>
-                <width>20</width>
-                <height>40</height>
+                <width>0</width>
+                <height>600</height>
                </size>
               </property>
-             </spacer>
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>700</height>
+               </size>
+              </property>
+              <property name="sizeAdjustPolicy">
+               <enum>QAbstractScrollArea::AdjustToContentsOnFirstShow</enum>
+              </property>
+              <property name="textInteractionFlags">
+               <set>Qt::NoTextInteraction</set>
+              </property>
+             </widget>
+            </item>
+            <item row="3" column="0">
+             <widget class="QTextEdit" name="textEditFlopWeek">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="MinimumExpanding" vsizetype="Maximum">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>100</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>350</height>
+               </size>
+              </property>
+              <property name="sizeAdjustPolicy">
+               <enum>QAbstractScrollArea::AdjustToContentsOnFirstShow</enum>
+              </property>
+              <property name="textInteractionFlags">
+               <set>Qt::NoTextInteraction</set>
+              </property>
+             </widget>
             </item>
            </layout>
           </widget>

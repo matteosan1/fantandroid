@@ -8,6 +8,7 @@
 #include <QStringList>
 #include <QByteArray>
 #include <QCryptographicHash>
+#include <QStandardPaths>
 
 #include "ui_mainwindow.h"
 #include "mainwindow.h"
@@ -19,9 +20,9 @@
 #define REMOTE_DB_FILENAME "https://dl.dropboxusercontent.com/s/0p5psz455zjaxb1/team.sqlite?dl=0"
 
 #ifdef Q_OS_ANDROID
-//#define OUTPUT_DIR "/data/data/org.qtproject.fantandroid/databases/"
+#define OUTPUT_DIR QStandardPaths::writableLocation(QStandardPaths::StandardLocation::AppLocalDataLocation)
 #else
-#define OUTPUT_DIR "/Users/sani/testSqlModel"
+#define OUTPUT_DIR QString("/Users/sani/testSqlModel")
 #endif
 
 class Punteggi;

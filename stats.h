@@ -4,17 +4,17 @@
 #include <QObject>
 
 class QSqlDatabase;
-class QTableWidget;
+class QTextEdit;
 
 class Stats : public QObject
 {
     Q_OBJECT
 public:
     explicit Stats(QSqlDatabase* db,
-                   QTableWidget* tableTopScorer,
-                   QTableWidget* tableTopWeek,
-                   QTableWidget* tableFlopWeek,
-                   QTableWidget* tableTopOverall,
+                   QTextEdit* tableTopScorer,
+                   QTextEdit* tableTopWeek,
+                   QTextEdit* tableFlopWeek,
+                   QTextEdit* tableTopOverall,
                    QObject *parent = 0);
 
     void init();
@@ -27,10 +27,10 @@ public slots:
 
 private:
     QSqlDatabase* m_db;
-    QTableWidget* m_tableTopScorer;
-    QTableWidget* m_tableTopWeek;
-    QTableWidget* m_tableFlopWeek;
-    QTableWidget* m_tableTopOverall;
+    QTextEdit* m_tableTopScorer;
+    QTextEdit* m_tableTopWeek;
+    QTextEdit* m_tableFlopWeek;
+    QTextEdit* m_tableTopOverall;
 
     bool          m_topScorerRanking;
     bool          m_topFlop;

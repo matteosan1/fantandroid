@@ -48,7 +48,7 @@ void Ranking::init()
 
 void Ranking::changeRoundUp()
 {
-    if (m_round<=m_maxRounds)
+    if (m_round<m_maxRounds)
         m_round++;
 
     reportResults();
@@ -221,7 +221,7 @@ void Ranking::computeRanking()
             m_tableRanking->setItem(i, 6, new QTableWidgetItem(QString::number(teams[key]->m_lost)));
             m_tableRanking->setItem(i, 7, new QTableWidgetItem(QString::number(teams[key]->m_scored)));
             m_tableRanking->setItem(i, 8, new QTableWidgetItem(QString::number(teams[key]->m_conceded)));
-            m_tableRanking->setItem(i, 9, new QTableWidgetItem(QString::number(teams[key]->m_fantaPoints/teams[key]->m_played)));
+            m_tableRanking->setItem(i, 9, new QTableWidgetItem(QString::number(teams[key]->m_fantaPoints/teams[key]->m_played, 'f', 2)));
         }
     }
 
@@ -257,6 +257,7 @@ void Ranking::reportResults()
         if (query.first())
         {
             m_round = query.value(0).toInt();
+            qDebug() << m_round;
         }
         else
             m_round++;

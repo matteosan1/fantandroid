@@ -11,7 +11,6 @@
 #include <QScroller>
 #include <QScreen>
 #include <QKeyEvent>
-#include <QStandardPaths>
 
 #include <QSslSocket>
 
@@ -96,18 +95,18 @@ MainWindow::~MainWindow()
 
 void MainWindow::checkVersion()
 {
+//#ifdef Q_OS_ANDROID
+//    QString destination = QStandardPaths::writableLocation(QStandardPaths::StandardLocation::AppLocalDataLocation);
+//#else
+//    QString destination = OUTPUT_DIR;
+//#endif
 
 #ifndef LOCAL_DB
 
     if (m_downloadManager->isConnectedToNetwork()) {
         //QMessageBox::warning(this, "DB issue", "Download about to start.", QMessageBox::Ok);
 
-#ifdef Q_OS_ANDROID
-        QString destination = QStandardPaths::writableLocation(QStandardPaths::StandardLocation::AppLocalDataLocation);
-#else
-        QString destination = OUTPUT_DIR;
-#endif
-        m_downloadManager->execute(REMOTE_DB_FILENAME, destination);
+        m_downloadManager->execute(REMOTE_DB_FILENAME, OUTPUT_DIR);
     }
     else
     {
@@ -146,14 +145,14 @@ void MainWindow::initializeApp()
 bool MainWindow::openDB()
 {
 
-#ifdef Q_OS_ANDROID
-    QString filename = QStandardPaths::writableLocation(QStandardPaths::StandardLocation::AppLocalDataLocation);
-#else
-    QString filename = OUTPUT_DIR;
-#endif
-    filename.append("/team.sqlite");
+//#ifdef Q_OS_ANDROID
+//    QString filename = QStandardPaths::writableLocation(QStandardPaths::StandardLocation::AppLocalDataLocation);
+//#else
+//    QString filename = OUTPUT_DIR;
+//#endif
+//    filename.append("/team.sqlite");
 
-    QFile file(filename);
+    QFile file(OUTPUT_DIR + "/team.sqlite");
 
     if (file.exists()) {
         if (m_db != NULL and m_db->isOpen()) {
@@ -161,7 +160,7 @@ bool MainWindow::openDB()
         }
 
         m_db = new QSqlDatabase(QSqlDatabase::addDatabase("QSQLITE", "MyConnection"));
-        m_db->setDatabaseName(filename);
+        m_db->setDatabaseName(OUTPUT_DIR + "/team.sqlite");
         m_db->open();
         m_ui.stackedWidget->setCurrentIndex(0);
 
@@ -177,31 +176,42 @@ void MainWindow::chooseYourTeam(bool overwrite)
     QString qryStr;
     QSqlQuery query(*m_db);
 
-    qryStr = "SELECT * from yourTeam;";
-    query.exec(qryStr);
-    query.first();
+//    qryStr = "SELECT * from yourTeam;";
+//    query.exec(qryStr);
+//    query.first();
+
+    QFile file(OUTPUT_DIR + "squadra.txt");
+    if (file.open(QIODevice::ReadOnly)) {
+        QTextStream stream(&file);
+        m_teamLabel = stream.readLine();
+        file.close();
+    }
 
     if (m_teamLabel.isEmpty() or overwrite) {
-        if (query.first() and !overwrite) {
+//        if (query.first() and !overwrite) {
+//            m_teamLabel = query.value("name").toString();
+//        }
+//        else {
+        QString phoneNumber = QInputDialog::getText(NULL, QString("Inserisci il tuo numero di telefono:"), QString("Numero di Telefono (senza 0039):"));
+        qryStr = QString("SELECT name from teamName WHERE phone=\"" + phoneNumber + "\" or secondphone=\"" + phoneNumber + "\";");
+
+        query.exec(qryStr);
+
+        if (query.first()) {
+
             m_teamLabel = query.value("name").toString();
+
+            if (file.open(QIODevice::WriteOnly)) {
+                QTextStream stream(&file);
+                stream << m_teamLabel;
+                file.close();
+            }
         }
         else {
-            QString phoneNumber = QInputDialog::getText(NULL, QString("Inserisci il tuo numero di telefono:"), QString("Numero di Telefono (senza 0039):"));
-            //m_sqlModel->setFilter("phone='"+phonenumber+"';");
-            //if (m_sqlModel->select())
-
-            qryStr = QString("SELECT name from teamName WHERE phone=\"" + phoneNumber + "\" or secondphone=\"" + phoneNumber + "\";");
-
-            query.exec(qryStr);
-
-            if (query.first()) {
-                m_teamLabel = query.value("name").toString();
-            }
-            else {
-                m_teamLabel = "";
-                QMessageBox::critical(this, "ERRORE", "Impossibile trovare il tuo numero nel DB", QMessageBox::Ok);
-            }
+            m_teamLabel = "";
+            QMessageBox::critical(this, "ERRORE", "Impossibile trovare il tuo numero nel DB", QMessageBox::Ok);
         }
+    //}
     }
 
     if (!m_teamLabel.isEmpty()) {
@@ -340,7 +350,7 @@ void MainWindow::init()
     connect(m_ui.pushButtonRoundDown, SIGNAL(clicked(bool)), m_ranking, SLOT(changeRoundDown()));
 
     // setup stat stack
-    m_stats = new Stats(m_db, m_ui.tableWidgetTopScorer, m_ui.tableWidgetTopWeek, m_ui.tableWidgetFlopWeek, m_ui.tableWidgetTopOverall);
+    m_stats = new Stats(m_db, m_ui.textEditTopScorer, m_ui.textEditTopWeek, m_ui.textEditFlopWeek, m_ui.textEditTopOverall);
     m_stats->init();
     m_ui.pushButtonStat->setObjectName("Stats");
     connect(m_ui.pushButtonStat, SIGNAL(clicked(bool)), this, SLOT(changeStack()));
@@ -754,6 +764,9 @@ void MainWindow::enableCombo(QComboBox *combo, RuoloEnum ruolo1, RuoloEnum ruolo
     if (lineupIndex > 0) {
         combo->setCurrentIndex(lineupIndex);
     }
+
+    int width = combo->minimumSizeHint().width();
+    combo->view()->setMinimumWidth(width);
 }
 
 void MainWindow::disableAllCombo()

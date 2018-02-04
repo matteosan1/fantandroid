@@ -614,7 +614,7 @@ void MainWindow::playerSelected(QString player)
             else {
                 int ruolo = p->ruolo()/10;
 
-                if (ruolo >= 2) {
+                if (ruolo >= 2 and ruolo < 10) {
                     m_ui.comboBoxPanchinari->addItem(p->nomeCompleto());
                 }
             }
